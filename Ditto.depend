@@ -1,5 +1,5 @@
 # depslib dependency file v1.0
-1394386455 source:c:\users\tux\documents\dev\projects\ditto\main.cpp
+1394389791 source:c:\users\tux\documents\dev\projects\ditto\main.cpp
 	<iostream>
 	<fstream>
 	<string>
@@ -22,7 +22,7 @@
 	<vector>
 	<string>
 
-1394385830 source:c:\users\tux\documents\dev\projects\ditto\peparser.cpp
+1394387508 source:c:\users\tux\documents\dev\projects\ditto\peparser.cpp
 	"peparser.h"
 	<iostream>
 	<algorithm>
@@ -41,22 +41,23 @@
 	<stdint.h>
 	<stddef.h>
 
-1394385958 source:c:\users\tux\documents\dev\projects\ditto\disassembler.cpp
+1394391542 source:c:\users\tux\documents\dev\projects\ditto\disassembler.cpp
 	"disassembler.h"
 	<sstream>
 	<iostream>
 
-1394374417 c:\users\tux\documents\dev\projects\ditto\disassembler.h
+1394390152 c:\users\tux\documents\dev\projects\ditto\disassembler.h
 	"objectparser.h"
 	<vector>
 	<map>
+	<set>
 	<stdint.h>
 	<stddef.h>
 
 1394308690 source:c:\users\tux\documents\dev\projects\ditto\disassemblerinstructions.cpp
 	"disassembler.h"
 
-1394198791 source:c:\users\tux\documents\dev\projects\ditto\transform.cpp
+1394387432 source:c:\users\tux\documents\dev\projects\ditto\transform.cpp
 	"transform.h"
 	<iostream>
 	<cstdlib>

@@ -19,12 +19,12 @@ Disassembler::Disassembler(ObjectParser& Parser, bool forceIgnoreErrors, bool fo
 	startOfEntrySection=endOfEntrySection=0;
 	for (pair<uint8_t*,uint8_t*>& p : codeBounds)
 	{
-		cout << "SEC START 0x"<<hex<<p.first-virtualImage<<dec<<endl;
-		cout << "SEC END 0x"<<hex<<p.second-virtualImage<<dec<<endl;
-		cout << "ENTRY 0x"<<hex<<entryPoint-virtualImage<<dec<<endl;
+		//cout << "SEC START 0x"<<hex<<p.first-virtualImage<<dec<<endl;
+		//cout << "SEC END 0x"<<hex<<p.second-virtualImage<<dec<<endl;
+		//cout << "ENTRY 0x"<<hex<<entryPoint-virtualImage<<dec<<endl;
 		if (entryPoint>=p.first&&entryPoint<p.second)
 		{
-			cout << "SECTION FOUND\n";
+			//cout << "SECTION FOUND\n";
 			startOfEntrySection=p.first;
 			endOfEntrySection=p.second;
 			break;
@@ -126,6 +126,21 @@ void Disassembler::readCode(uint8_t* addr)
 				off = (int)(newIns[2] + ((int)newIns[3]<<8) + ((int)newIns[4]<<16) + ((int)newIns[5]<<24));
 		}
 
+		// Find data references
+		if (newIns[0]>=0xB8 && newIns[0]<=0xBF) // MOV Zv, Iv
+		{
+			uint8_t* ref = virtualImage-(uint32_t)imageBase+(uint32_t)(newIns[1] + ((int)newIns[2]<<8) + ((int)newIns[3]<<16) + ((int)newIns[4]<<24));
+			if (isAddrInternal(ref))
+			{
+				// If this addr is known code, don't mark it as may-be-data, if it's already data, then nothing to do.
+				if (refdAddrs.find(ref) == end(refdAddrs))
+				{
+					//cout << "FOUND POSSIBLE DATA REF: 0x"<<hex<<(uint32_t)ref-(int)virtualImage<<dec<<endl;
+					refdAddrs.insert(pair<uint8_t*,DetectedType>(ref, DetectedType::possibleData));
+				}
+			}
+		}
+
 		if (off!=0)
 		{
 			// Check bounds
@@ -142,6 +157,8 @@ void Disassembler::readCode(uint8_t* addr)
 				#if (DEBUG_OUTPUT)
 				cout << "Found branch to : 0x"<<hex<<(int)(newIp-virtualImage)<<dec<<"\n";
 				#endif
+				//cout << "ADDING CODE REF TO : 0x"<<hex<<(int)(newIp-virtualImage)<<dec<<"\n";
+				refdAddrs.insert(pair<uint8_t*,DetectedType>(newIp, DetectedType::code));
 				readCode(newIp);
 			}
 		}
@@ -151,6 +168,25 @@ void Disassembler::readCode(uint8_t* addr)
 			cout << "Returning after reaching end of flow\n";
 			#endif
 			return;
+		}
+
+		// If we reach a referenced address that isn't a known branch dest, return, since it could be data.
+		auto it = refdAddrs.find(ip);
+		if (it!=end(refdAddrs))
+		{
+			if (it->second==DetectedType::possibleData || it->second==DetectedType::data)
+			{
+				//#if (DEBUG_OUTPUT)
+				//cout << "Reached possible data, returning\n";
+				//#endif
+				return;
+			}
+			else
+			{
+				#if (DEBUG_OUTPUT)
+				cout << "Reched referenced addr, but it's not data\n";
+				#endif
+			}
 		}
 	}
 }

@@ -10,7 +10,7 @@ Transform::Transform(Disassembler& disassembler, uint8_t Rand)
 {
 	srand(time(NULL));
 
-	disasm.analyze();
+	//disasm.analyze();
 }
 
 bool Transform::getRandBool()

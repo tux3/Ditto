@@ -209,7 +209,7 @@ std::vector<std::pair<uint8_t*,uint8_t*>> PEParser::getCodeSectionsVirtualBounds
 	{
 		if (h->characteristics & IMAGE_SCN_CNT_CODE)
 		{
-			cout << "CODE SECTION:"<<string(h->name,8)<<"\n";
+			//cout << "CODE SECTION:"<<string(h->name,8)<<"\n";
 			size_t size = min(h->virtualSize, h->rawDataSize);
 			uint8_t* virtualStart=(uint8_t*)virtualImage+h->virtualAddress;
 			bounds.push_back(pair<uint8_t*,uint8_t*>{virtualStart,virtualStart+size});

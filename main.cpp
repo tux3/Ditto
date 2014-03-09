@@ -153,6 +153,28 @@ int main(int argc, char* argv[])
 	MOV REG, 0xXXXXXXXX, and 0xXXXXXXXX is an internal address, this is very likely data.
 	For example B8 XXXXXXXX is sometimes used to load an address into EAX.
 	We should do a test run, detect some of those, and see if all the results we get are data.
+	=> The test run is definitely an improvement, because now we don't crash on WinMD5, but it's also WRONG.
+	=> It's terribly wrong, we get false positives ! There are hardcoded function pointers that are moved into
+	=> registers and we shouldn't mark them as data or we'll skip a large part of the code.
+	=> That said, it's safer to skip part of the code, rather than reading data as code and later modifying it.
+	==> Make a compromise. Instead of having the set dataRefs, make it the
+	==> map<uint8_t, enum detectedType> refedAddrs. When we find an explicit JMP/CALL to this address, mark it in
+	==> refedAddrs as code. If we find an instruction refering to an address, if it's not already marked as code, mark
+	==> it as possibleData. This way function pointers still work, since they reference the same addr that is
+	==> explicitely branched to elsewhere. If it's not explicitely branched to, then we wouldn't find it anyway.
+	==> We should probably only check if we're about to read data after a jump or call, since data isn't going to
+	==> appear in the middle of valid non-branching instructions.
+	===> Now, right now we need to check every instruction whether or not we're landing on data.
+	===> There might be a noreturn call with no references to the byte immediatly following it, but references later.
+	====> There's also the problem of being aligned with the data. If the data is referenced at 0x2 and we start
+	====> reading at 0x1, we'll never land exactly on the start of the data reference.
+
+	=> Try to grep for 0x558BEC (push ebp, mov ebp, esp)
+	=> See in olly if there are no false positives
+	=> We hopefully shouldn't find too many false positives, since most of .text is supposed to be code, not data.
+	=> Anyway, this should be an option not by default since it's dangerous.
+	==> Grep with olly first to see what the results are.
+	===> Maybe see if we can find a cleanup, or if there is a way to search for the cleanup.
 	**/
 	cout << "Disassembling...";
 	Disassembler* disasm;
@@ -177,7 +199,7 @@ int main(int argc, char* argv[])
 	catch (const char* e) {
 		exitWithError(string("FAIL (")+e+")\nAborting.\n");
 	}
-	cout << "OK\n";
+	cout << "OK (disabled)\n";
 
 	if (argSubstitute)
 	{

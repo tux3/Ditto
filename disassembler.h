@@ -4,6 +4,7 @@
 #include "objectparser.h"
 #include <vector>
 #include <map>
+#include <set>
 #include <stdint.h>
 #include <stddef.h>
 
@@ -18,6 +19,14 @@ enum class Register
 	esi,
 	edi,
 	none
+};
+
+enum DetectedType
+{
+	code,			///< We are positive this is code
+	data,			///< We are positive this is data
+	possibleData,	///< This could be data, you shouldn't disassemble it.
+	unknown			///< This could be anything, if it follows non-branching code, we assume it's code.
 };
 
 /// Type of an instruction
@@ -137,6 +146,9 @@ class Disassembler
 		uint32_t imageBase;
 		std::vector<Branch> branches;
 		std::vector<Block> blocks;
+		/// Addresses referenced by instructions. Could be data or code used as a function pointer.
+		/// Or could just be a constant that happens to be a valid address of a code section.
+		std::map<uint8_t*, DetectedType> refdAddrs;
 		std::multimap<uint8_t*, uint8_t*> refs; ///< The key is the destination, the values are the sources
 		uint8_t* entryPoint; ///< Entry point, points inside the virtual image
 		uint8_t* startOfEntrySection; ///< Start of the section containing the entry point.
