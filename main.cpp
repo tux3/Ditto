@@ -127,33 +127,37 @@ int main(int argc, char* argv[])
 		exitWithError(string("FAIL (")+e+")");
 	}
 	if (parser==nullptr)
-		exitWithError("Can't detect file type. Aborting.");
+		exitWithError("Error : Can't detect file type.\n");
 
-    // Get .text section
-    cout << "Parsing sections...";
-    vector<string> sectionNames = parser->getSectionNames();
-    //for (string& s : sectionNames) cout <<s<<"\n";
-    pair<uint8_t*,size_t> code;
-    unsigned long entryPoint;
-    if (find(begin(sectionNames),end(sectionNames),string(".text"))!=end(sectionNames))
-	{
-		code = parser->getSectionData(".text");
-		entryPoint = parser->getRelEntryPoint();
-		long absEntryPoint = parser->getEntryPoint();
-		if (absEntryPoint<(int)parser->getSectionRawAddr(".text")
-			|| absEntryPoint>=(int)(parser->getSectionRawAddr(".text")+parser->getSectionRawSize(".text")))
-			exitWithError("FAIL (Entry point not in .text section)\nAborting.\n");
-	}
-	else
-		exitWithError("FAIL (Can't find code section)\nAborting.\n");
-	cout << "OK\n";
-	uint8_t* vStart = parser->getSectionVirtualAddr(".text");
+	// Disassemble the code sections
+	/** DONE;
+	Modify the disassembler to take an EP pointing to the virtual image
+	Modify the disassembler to take the whole virtual image, not just the .text section, then modify it to take
+	the vector of the bounds of the executable sections instead of just the end of the section or of the image.
+	Update isAddrInternal to check if the addr is within bounds of an executable section.
+	**/
+	/** TODO:
+	We can search for signatures (such as push ebp/mov ebp,esp) and mark them for analysis.
+	If we find those in the .text section, they are unlikely to be data.
+	Do the dynamic analysis in another class and as a runtime option
+	The dynamic analysis should be able to find data and code being referenced from the known code, we want to
+	keep track of both. We should have a vector of known data references, like we have a vector of branches.
+	The data structure should contain a set of instructions referencing it, a pointer to the data, and the size.
+	When we modify/remove/add an instruction, we need to invalidate part of those data structures.
+	We can rebuild the data structures after running updataVirtualImageFromInstructions() and re-analyzing the image.
 
-	// Disassemble the .text section
+	We should mark the ExitProcess function. Every function that always call ExitProcess should be marked as noreturn.
+	This way if we reach a call to a noreturn function, we can stop instead of risking reading garbage or data
+
+	We should probably implement data reference detection directly into the disassembler. For example if we see
+	MOV REG, 0xXXXXXXXX, and 0xXXXXXXXX is an internal address, this is very likely data.
+	For example B8 XXXXXXXX is sometimes used to load an address into EAX.
+	We should do a test run, detect some of those, and see if all the results we get are data.
+	**/
 	cout << "Disassembling...";
 	Disassembler* disasm;
 	try {
-	disasm=new Disassembler((uint8_t*)code.first, code.second, entryPoint, vStart, *parser, argForce, argForceCode);
+	disasm=new Disassembler(*parser, argForce, argForceCode);
 	}
 	catch (const char* e) {
 		exitWithError(string("FAIL (")+e+")\nAborting.\n");
@@ -188,23 +192,24 @@ int main(int argc, char* argv[])
 		cout << "OK ("<<nOps<<" instructions)\n";
 	}
 
-	cout << "Writing result...";
-	std::map<uint8_t* ,std::vector<uint8_t>> result = disasm->getCode();
-	if (disasm->getDataSize() != code.second)
-		exitWithError("FAIL (Section resizing not implemented)\n");
-	for (const std::pair<uint8_t* ,std::vector<uint8_t>>& ins : result)
-	{
-		uint8_t* addr=ins.first-code.first+data+(long)parser->getSectionRawAddr(".text");
-		for (uint8_t i=0; i<ins.second.size(); i++)
-			*(addr+i)=ins.second[i];
-	}
+	cout << "Rebuilding...";
+	/** DONE:
+	/// Have the disassembler implement a updataVirtualImageFromInstructions()
+	/// Have the ObjectParser implement a updateDataFromVirtualImage() that memcpy back the headers and sections.
+	**/
+	/// TODO:
+	/// We still don't handle changing the size, since we can't safely rebuild without relocations, or without
+	/// being absolutely positive we decoded all the instructions/data references and can fix them.
+	/// Then directly write the data buffer.
+	disasm->updateVirtualImageFromInstructions();
+	parser->updateDataFromVirtualImage();
 	fstream outFile;
 	outFile.open(argOut.c_str(),ios_base::out | ios_base::binary | ios_base::trunc);
 	if (!outFile.is_open())
 		exitWithError();
 	outFile.write((char*)data, dataSize);
 	outFile.close();
-	cout << "OK ("<<disasm->getDataSize()-code.second+dataSize<<" bytes)\n";
+	cout << "OK ("<<dataSize<<" bytes)\n";
 
 	return 0;
 }

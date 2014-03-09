@@ -79,7 +79,7 @@ void Disassembler::analyze()
 
 	// Build initial blocks vector (jump flow analysis)
 	blocks.clear();
-	readBlocks(data+entryPointOff);
+	readBlocks(entryPoint);
 	for (Branch& b : branches)
 		if (b.type==BranchType::call && isAddrInternal(b.dest))
 			readBlocks(b.dest);

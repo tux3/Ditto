@@ -104,7 +104,7 @@ std::pair<uint8_t*,size_t> PEParser::getSectionData(std::string sectionName)
 //	return sectionData;
 }
 
-size_t PEParser::getEntryPoint()
+uint8_t* PEParser::getEntryPoint()
 {
 	// Find the section containing the entry point
 	// substract virtual offset from RVA entry point to get physical entry point
@@ -114,12 +114,12 @@ size_t PEParser::getEntryPoint()
 		unsigned long start = h->virtualAddress;
 		unsigned long limit = start+h->virtualSize;
 		if (entry>start && entry<limit)
-			return entry - (h->virtualAddress - h->rawDataOffset);
+			return virtualImage + entry;
 	}
 	throw "Can't find the section containing the entry point";
 }
 
-size_t PEParser::getRelEntryPoint()
+uint32_t PEParser::getRelEntryPoint()
 {
 	// Find the section containing the entry point
 	// substract virtual offset from RVA entry point to get physical entry point
@@ -190,4 +190,46 @@ std::pair<uint8_t*,uint8_t*> PEParser::getSectionVirtualBounds(std::string secti
 	uint8_t* start=virtualImage+(*it)->virtualAddress;
 	uint8_t* end=start+(*it)->virtualSize;
 	return pair<uint8_t*,uint8_t*>(start,end);
+}
+
+uint32_t PEParser::getImageBase()
+{
+	return peHeader->imageBase;
+}
+
+uint32_t PEParser::getCodeBase()
+{
+	return peHeader->baseOfCode;
+}
+
+std::vector<std::pair<uint8_t*,uint8_t*>> PEParser::getCodeSectionsVirtualBounds()
+{
+	vector<std::pair<uint8_t*,uint8_t*>> bounds;
+    for (SectionHeader* h : sectionHeaders)
+	{
+		if (h->characteristics & IMAGE_SCN_CNT_CODE)
+		{
+			cout << "CODE SECTION:"<<string(h->name,8)<<"\n";
+			size_t size = min(h->virtualSize, h->rawDataSize);
+			uint8_t* virtualStart=(uint8_t*)virtualImage+h->virtualAddress;
+			bounds.push_back(pair<uint8_t*,uint8_t*>{virtualStart,virtualStart+size});
+		}
+	}
+	return bounds;
+}
+
+void PEParser::updateDataFromVirtualImage()
+{
+	// Copy the headers back
+	size_t headersSize=(uint8_t*)(sectionHeaders.back()+1) - data;
+	memcpy(data, virtualImage, headersSize);
+
+	// Copy the sections back
+	for (SectionHeader* h : sectionHeaders)
+	{
+		uint8_t* pStart = data+h->rawDataOffset;
+		uint8_t* vStart = virtualImage+h->virtualAddress;
+		size_t loadSize = min(h->rawDataSize, h->virtualSize);
+		memcpy(pStart, vStart, loadSize);
+	}
 }

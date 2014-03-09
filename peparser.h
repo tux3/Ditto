@@ -93,6 +93,11 @@ struct SectionHeader
 	uint32_t characteristics;		// Flags (see IMAGE_SCN_ defines below)
 };
 
+enum imageSectionCharacteristics
+{
+	IMAGE_SCN_CNT_CODE=0x00000020
+};
+
 class PEParser : public ObjectParser
 {
 	public:
@@ -104,10 +109,14 @@ class PEParser : public ObjectParser
 		virtual uint8_t* getSectionRawAddr(std::string sectionName);
 		virtual size_t getSectionVirtualSize(std::string sectionName);
 		virtual uint8_t* getSectionVirtualAddr(std::string sectionName);
-		virtual size_t getEntryPoint();
-		virtual size_t getRelEntryPoint();
+		virtual uint8_t* getEntryPoint();
+		virtual uint32_t getRelEntryPoint();
 		virtual uint8_t* getVirtualImage();
 		virtual std::pair<uint8_t*,uint8_t*> getSectionVirtualBounds(std::string sectionName);
+		virtual std::vector<std::pair<uint8_t*,uint8_t*>> getCodeSectionsVirtualBounds();
+		virtual uint32_t getImageBase();
+		virtual uint32_t getCodeBase();
+		virtual void updateDataFromVirtualImage();
 	protected:
 	private:
 		COFFHeader* coffHeader;

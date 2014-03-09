@@ -1,5 +1,5 @@
 # depslib dependency file v1.0
-1394318550 source:c:\users\tux\documents\dev\projects\ditto\main.cpp
+1394386455 source:c:\users\tux\documents\dev\projects\ditto\main.cpp
 	<iostream>
 	<fstream>
 	<string>
@@ -17,18 +17,18 @@
 	"objectparser.h"
 	<iostream>
 
-1394320240 c:\users\tux\documents\dev\projects\ditto\objectparser.h
+1394374669 c:\users\tux\documents\dev\projects\ditto\objectparser.h
 	<stddef.h>
 	<vector>
 	<string>
 
-1394321464 source:c:\users\tux\documents\dev\projects\ditto\peparser.cpp
+1394385830 source:c:\users\tux\documents\dev\projects\ditto\peparser.cpp
 	"peparser.h"
 	<iostream>
 	<algorithm>
 	<mem.h>
 
-1394320256 c:\users\tux\documents\dev\projects\ditto\peparser.h
+1394374675 c:\users\tux\documents\dev\projects\ditto\peparser.h
 	"objectparser.h"
 	<stdint.h>
 
@@ -41,12 +41,12 @@
 	<stdint.h>
 	<stddef.h>
 
-1394308395 source:c:\users\tux\documents\dev\projects\ditto\disassembler.cpp
+1394385958 source:c:\users\tux\documents\dev\projects\ditto\disassembler.cpp
 	"disassembler.h"
 	<sstream>
 	<iostream>
 
-1394314723 c:\users\tux\documents\dev\projects\ditto\disassembler.h
+1394374417 c:\users\tux\documents\dev\projects\ditto\disassembler.h
 	"objectparser.h"
 	<vector>
 	<map>
@@ -71,7 +71,7 @@
 	<cstdlib>
 	<ctime>
 
-1394278398 source:c:\users\tux\documents\dev\projects\ditto\disassembleranalyze.cpp
+1394325440 source:c:\users\tux\documents\dev\projects\ditto\disassembleranalyze.cpp
 	"disassembler.h"
 	<sstream>
 	<iostream>

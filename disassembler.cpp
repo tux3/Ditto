@@ -6,18 +6,40 @@
 
 using namespace std;
 
-Disassembler::Disassembler(uint8_t* Data, size_t DataSize, unsigned long entryPoint, uint8_t* virtualStartAddress,
-						ObjectParser& Parser, bool forceIgnoreErrors, bool forceAssumeCodeOnly)
-: data{Data}, dataSize{DataSize}, vstart(virtualStartAddress), parser(Parser),
-ignoreErrors(forceIgnoreErrors), assumeCodeOnly{forceAssumeCodeOnly}
+Disassembler::Disassembler(ObjectParser& Parser, bool forceIgnoreErrors, bool forceAssumeCodeOnly)
+: parser(Parser), ignoreErrors(forceIgnoreErrors), assumeCodeOnly{forceAssumeCodeOnly}
 {
-	entryPointOff=entryPoint;
-	readCode(data+entryPoint);
+	// Get some info from the object parser
+	virtualImage = parser.getVirtualImage();
+	codeBounds = parser.getCodeSectionsVirtualBounds();
+	imageBase = parser.getImageBase();
+	entryPoint = parser.getEntryPoint();
+
+	// Find the bounds of the section containing the entry point
+	startOfEntrySection=endOfEntrySection=0;
+	for (pair<uint8_t*,uint8_t*>& p : codeBounds)
+	{
+		cout << "SEC START 0x"<<hex<<p.first-virtualImage<<dec<<endl;
+		cout << "SEC END 0x"<<hex<<p.second-virtualImage<<dec<<endl;
+		cout << "ENTRY 0x"<<hex<<entryPoint-virtualImage<<dec<<endl;
+		if (entryPoint>=p.first&&entryPoint<p.second)
+		{
+			cout << "SECTION FOUND\n";
+			startOfEntrySection=p.first;
+			endOfEntrySection=p.second;
+			break;
+		}
+	}
+	if (startOfEntrySection==0 || endOfEntrySection==0)
+		throw "Invalid entry point or code sections";
+
+	// Time to disasm
+	readCode(entryPoint);
 }
 
 void Disassembler::readCode(uint8_t* addr)
 {
-	for (uint8_t* ip = addr; ip<data+dataSize ;)
+	for (uint8_t* ip = addr; ip<endOfEntrySection ;)
 	{
 		if (code.find(ip)!=end(code))
 		{
@@ -33,7 +55,7 @@ void Disassembler::readCode(uint8_t* addr)
 
 		vector<uint8_t> newIns = code[ip];
 		#if (DEBUG_OUTPUT)
-		cout << "New instruction at offset 0x"<<hex<<ip-data<<" : ";
+		cout << "New instruction at offset 0x"<<hex<<ip-virtualImage<<" : ";
 		for(unsigned i=0; i<newIns.size();++i)
 			cout<<(int)newIns[i]<<" ";
 		cout<<dec<<"\n";
@@ -67,7 +89,7 @@ void Disassembler::readCode(uint8_t* addr)
 				// We can't follow Ev operands when they refer to the content of a register
 				if (getMod(newIns[1])==0 && getRM(newIns[1])==5) // Absolute address
 					off = (newIns[2] + ((int)newIns[3]<<8) + ((int)newIns[4]<<16) + ((int)newIns[5]<<24))
-					-(int)ip-(int)vstart; // Make the address absolute, not an offset
+					-(int)ip-(int)imageBase; // Make the address absolute, not an offset
 				else
 				{
 					#if (DEBUG_OUTPUT)
@@ -81,7 +103,7 @@ void Disassembler::readCode(uint8_t* addr)
 				if (getMod(newIns[1])==0 && getRM(newIns[1])==5) // Absolute address
 				{
 					off = (newIns[2] + ((int)newIns[3]<<8) + ((int)newIns[4]<<16) + ((int)newIns[5]<<24))
-					-(int)ip-(int)vstart; // Make the address absolute, not an offset
+					-(int)ip-(int)imageBase; // Make the address absolute, not an offset
 					endOfFlow=true;
 				}
 				else
@@ -109,16 +131,16 @@ void Disassembler::readCode(uint8_t* addr)
 			// Check bounds
 			uint8_t* newIp = (uint8_t*)(ip+off);
 			//cout <<hex<<"dataSize:0x"<<(int)dataSize<<", newIp:0x"<<(int)(newIp-data)<<dec<<"\n";
-			if (newIp<data || newIp>(data+dataSize))
+			if (!isAddrInternal(newIp))
 			{
 				#if (DEBUG_OUTPUT)
-				cout << "Found branch to external module\n";
+				cout << "Found branch to external module (0x"<<hex<<(int)(newIp-virtualImage)<<dec<<")\n";;
 				#endif
 			}
 			else
 			{
 				#if (DEBUG_OUTPUT)
-				cout << "Found branch to : 0x"<<hex<<(int)(newIp-data)<<dec<<"\n";
+				cout << "Found branch to : 0x"<<hex<<(int)(newIp-virtualImage)<<dec<<"\n";
 				#endif
 				readCode(newIp);
 			}
@@ -151,7 +173,7 @@ uint8_t getRM(uint8_t modrm)
 const char* Disassembler::generateOpcodeErrorInfo(const char* error, uint8_t* addr)
 {
 	stringstream es;
-	es << error << " (opcode 0x"<<hex<<(int)*addr<<" at offset 0x" << (unsigned long)(addr - data)<<")"<<dec;
+	es << error << " (opcode 0x"<<hex<<(int)*addr<<" at offset 0x" << (unsigned long)(addr - startOfEntrySection)<<")"<<dec;
 	string* estr = new string(es.str());
 	return estr->c_str();
 }
@@ -267,7 +289,7 @@ uint8_t* Disassembler::getBranchDest(uint8_t* addr, std::vector<uint8_t>& instru
 	else if (op==0xEA || op==0x9A)
 	{
 		throw "Absolute adresses resolution not implemented (not tested, at least)";
-		return addr+(ins[1] + ((int)ins[2]<<8) + ((int)ins[3]<<16) + ((int)ins[4]<<24))-(int)vstart;
+		return addr+(ins[1] + ((int)ins[2]<<8) + ((int)ins[3]<<16) + ((int)ins[4]<<24))-(int)imageBase;
 		cout << "RESULT:0x"<<hex<<addr<<dec<<"\n";
 	}
 	// Relative Jv non-extended
@@ -288,8 +310,8 @@ uint8_t* Disassembler::getBranchDest(uint8_t* addr, std::vector<uint8_t>& instru
 		uint8_t op2=ins[1];
 		if (getMod(op2)==0 && getRM(op2)==5) // Absolute address
 		{
-			return data + ((uint32_t)ins[2] + ((uint32_t)(ins[3])<<8)
-					+ (((uint32_t)ins[4])<<16) + (((uint32_t)ins[5])<<24)) - (uint32_t)vstart;
+			return virtualImage + ((uint32_t)ins[2] + ((uint32_t)(ins[3])<<8)
+					+ (((uint32_t)ins[4])<<16) + (((uint32_t)ins[5])<<24)) - (uint32_t)imageBase;
 		}
 		else
 			return (uint8_t*)-1;
@@ -311,14 +333,12 @@ void Disassembler::editInstruction(uint8_t* addr,std::vector<uint8_t> ins)
 	code[addr]=ins;
 }
 
-size_t Disassembler::getDataSize()
-{
-	return dataSize;
-}
-
 bool Disassembler::isAddrInternal(uint8_t* addr)
 {
-	return addr>=data && addr<=data+dataSize;
+	for (pair<uint8_t*,uint8_t*>& p : codeBounds)
+		if (addr>=p.first&&addr<p.second)
+			return true;
+	return false;
 }
 
 vector<Branch> Disassembler::getXRefs(uint8_t* addr)
@@ -366,4 +386,13 @@ bool Disassembler::isAddrInBlock(const uint8_t* const addr)
 			return true;
 	return false;
 	*/
+}
+
+void Disassembler::updateVirtualImageFromInstructions()
+{
+	for (pair<uint8_t* ,std::vector<uint8_t>> ins : code)
+	{
+		for (uint8_t i=0; i<ins.second.size(); ++i)
+			*(ins.first+i)=ins.second[i];
+	}
 }

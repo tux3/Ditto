@@ -24,10 +24,29 @@
 				<Option compiler="gcc" />
 				<Option parameters="test.exe -s -o testMorphed.exe -r 100" />
 				<Compiler>
+					<Add option="-fomit-frame-pointer" />
+					<Add option="-fexpensive-optimizations" />
 					<Add option="-O3" />
 				</Compiler>
 				<Linker>
 					<Add option="-s" />
+					<Add option="-static-libstdc++" />
+					<Add option="-static-libgcc" />
+				</Linker>
+			</Target>
+			<Target title="Profile">
+				<Option output="bin/Profile/Ditto" prefix_auto="1" extension_auto="1" />
+				<Option object_output="obj/Profile/" />
+				<Option type="1" />
+				<Option compiler="gcc" />
+				<Option parameters="test.exe -s -o testMorphed.exe -r 100 -f" />
+				<Compiler>
+					<Add option="-fexpensive-optimizations" />
+					<Add option="-O3" />
+					<Add option="-pg" />
+				</Compiler>
+				<Linker>
+					<Add option="-pg -lgmon" />
 				</Linker>
 			</Target>
 		</Build>
@@ -37,12 +56,14 @@
 		</Compiler>
 		<Unit filename="disassembler.cpp" />
 		<Unit filename="disassembler.h" />
+		<Unit filename="disassemblerAnalyze.cpp" />
 		<Unit filename="disassemblerInstructions.cpp" />
 		<Unit filename="main.cpp" />
 		<Unit filename="objectparser.cpp" />
 		<Unit filename="objectparser.h" />
 		<Unit filename="peparser.cpp" />
 		<Unit filename="peparser.h" />
+		<Unit filename="transInplaceSub.cpp" />
 		<Unit filename="transform.cpp" />
 		<Unit filename="transform.h" />
 		<Extensions>

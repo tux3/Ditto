@@ -93,8 +93,7 @@ uint8_t getRM(uint8_t modrm); ///< Gets the R/M part of the ModRM
 class Disassembler
 {
 	public:
-		Disassembler(uint8_t* Data, size_t DataSize, unsigned long entryPoint, uint8_t* virtualStartAddress,
-					ObjectParser& Parser, bool forceIgnoreErrors=false, bool forceAssumeCodeOnly=false);
+		Disassembler(ObjectParser& Parser, bool forceIgnoreErrors=false, bool forceAssumeCodeOnly=false);
 		void analyze(); ///< Build the branches and Blocks vectors
 		const std::map<uint8_t* ,std::vector<uint8_t>>& getCode();
 		void editInstruction(uint8_t* addr,std::vector<uint8_t> ins);
@@ -110,8 +109,8 @@ class Disassembler
 		/// Adds count opcodes to the instruction
 		static void addOpcodes(std::vector<uint8_t>& instruction, uint8_t* addr, unsigned count);
 		static bool isPrefix(uint8_t op);
-		size_t getDataSize(); ///< Returns the current size of the data buffer. May change.
 		bool isAddrInternal(uint8_t* addr); ///< Is the address inside the data buffer or not
+		void updateVirtualImageFromInstructions(); ///< Applies the changes to the intructions to the virtual image
 	protected:
 		/// Adds the given instruction to the internal code data structure
 		/// Throws a const char* if an invalid opcode is encountered
@@ -132,30 +131,20 @@ class Disassembler
 		bool isAddrInBlock(const uint8_t* const addr);
 	private:
 		/// Virtual address corresponding to the start of the data block
-		uint8_t* data;
-		size_t dataSize;
-		std::map<uint8_t* ,std::vector<uint8_t>> code;
-		uint8_t* vstart;
+		uint8_t* virtualImage;
+		std::vector<std::pair<uint8_t*,uint8_t*>> codeBounds; ///< Bounds of the executable sections
+		std::map<uint8_t* ,std::vector<uint8_t>> code; ///< All the disassembled instructions and their addresses
+		uint32_t imageBase;
 		std::vector<Branch> branches;
 		std::vector<Block> blocks;
-		std::multimap<uint8_t*, uint8_t*> refs; // The key is the destination, the values are the sources
-		uint64_t entryPointOff;
+		std::multimap<uint8_t*, uint8_t*> refs; ///< The key is the destination, the values are the sources
+		uint8_t* entryPoint; ///< Entry point, points inside the virtual image
+		uint8_t* startOfEntrySection; ///< Start of the section containing the entry point.
+		uint8_t* endOfEntrySection; ///< End of the section containing the entry point.
 		ObjectParser& parser;
 		bool ignoreErrors;
 		/// If true we'll assume we can keep reading after a RET or JMP, and still get valid instructions, not data
 		bool assumeCodeOnly;
-
-		/// TODO: Handle objects with .text,.itext sections.
-		/// Load the whole file at virtual addresses, use an absolute entry point.
-
-		/// TODO: We need to read the damn FIXUP TABLE
-
-		/// Do the dynamic analysis in another class and as a runtime option
-
-		/// We can search for signatures (such as push ebp/mov ebp,esp) and mark them for analysis.
-		/// If we find those in the .text section, they are unlikely to be data.
-
-		/// => The first thing to do is loading everything at virtual addresses and fixing the relocs.
 };
 
 #endif // DECOMPILER_H
