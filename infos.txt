@@ -1,0 +1,214 @@
+Special cases for ModRM
+- When Mod is 00 and R/M is 5 (101), we're using an absolute memory address (no displacement)
+- When Mod is NOT 11 and R/M is 4 (ESP), we're using the SIB byte
+
+Special cases for SIB
+- When ModM:Mod is 00 and Base (getRM()) is 5 (EBP), we're using a 4B displacement 
+
++r register part of X+r opcodes
++0 EAX
++1 ECX
++2 EDX
++3 EBX
++4 ESP
++5 EBP
++6 ESI
++7 EDI
+
+###############
+Profiling showed we spent 95% of the time in getXRefs during analysis.
+Time to process Bitcoin.exe (22MB), in Release mode, with args "test.exe -s -o testMorphed.exe -r 100" : 556.789s
+After profiling and optimizing the xref detection : 164.107s, 3.39x faster.
+
+
+Profiling showed we now spent 95% of the time in getBlockOfAddr during analysis.
+With notepad++ (1.5MB) : 3.66s, 3.72s, 3.667s
+After removing some data from the Block structure for cache friendliesness : 2.18s, 2.184s, 2.185s, 1.70x faster.
+After transforming a vector into a vector& inside Block for cache friendliness : 2.088s, 2.096s, 2.092s, 1.04x faster.
+After optimizing the pe parsing : 2.084s, 2.092s, 2.092s. No measurable change for notepad++.
+
+After static-linking with libstdc++ : 1.956s, 1.951s, 1.958s.
+After static-linking with libgcc : 1.948s, 1.949s, 1.946s.
+
+New time to process Bitcoin.exe  : 52.583s (10.6x faster than the original)
+
+After making isAddrInBlock use a reverse iterator, for npp : 1.745, 1.742, 1.746, 1.12x faster
+New time for Bitcoin : 39.543s (14x faster than the original)
+
+###############
+We only take into account changes to the size of the instruction
+The adress-size override (67) can actually work on displacements it seems (with opcode 01 and a ModRM of B0 for example)
+But since it's so useseless, we're just not going to support it.
+-- 66 Operand-size prefix :
+- Works on :
+Iv
+Jv
+Ev Iv
+- Doesn't work on:
+Jbs
+Ib
+Zb Ib
+Eb Ib
+Ev Gv
+Gv Ev
+Gv M
+Ev
+
+######
+
+BOTH OF THOSE ARE CORRECT :
+
+sub DWORD PTR [0x22], 0x1C
+832D220000001C
+
+sub eax, 0x1C
+83E81C
+
+=> 83 E8 1C
+E8 = 1110 1000 = 11 101 000
+11 means R/M is register to be used directly as operand
+101 is /5 for SUB
+000 is EAX
+
+=> 83 2D 22000000 1C
+2D = 0010 1101 = 00 101 101
+00 means no displacement, R/M is register for indirect addressing
+101 is /5 for SUB
+101 is 5 = Absolute memory address
+
+###############
+SUB ESP,1C
+83 EC 1C
+EC = 11 101 100
+11 means register direct
+101 is /5 for SUB Ev Ibs
+100 is ESP
+
+#############
+
+MOV DWORD PTR SS:[ESP],1
+C7 0424 01000000
+ModR/M is 04 = 0000 0100 = 00 000 100
+00 means no displacement and R/M indirect reg
+000 means /0 for MOV
+100 means we're using the SIB byte
+
+SIB is 24 = 0010 0100 = 00 100 100
+00 means multiply by 1 (2^0)
+100 means using the ESP register
+100 means base of 4 (SS)
+
+###############
+CALL DWORD PTR DS:[40922C]
+FF 15 2C924000
+ModR/M is 15 = 0001 0101 = 00 010 101
+00 means no displacement, indirect
+010 means /2 CALL
+101 means 5 = Absolute memory address
+
+################
+MOV EBP,ESP
+89E5
+ModR/M is E5 = 1110 0101 = 11 100 101
+11 means use register directly
+100 means ESP
+101 means EBP
+
+################
+TEST EAX,EAX
+85C0
+ModR/M is C0 = 1100 0000
+11 is use register directly
+000 and 000 are EAX
+
+###############
+JMP DWORD PTR DS:[409200]
+FF 25 00924000
+ModR/M is 25 = 0010 0101 = 00 100 101
+00 means no displacement, indirect
+100 means /4 JMP Ev
+101 means 5 = Absolute addr
+
+################
+XOR EAX,00200000
+35 00002000
+
+################
+XOR EAX,EDX
+31D0
+D0 = 1101 0000 = 11 010 000
+11 means register
+010 is EDX, 000 is EAX
+
+#################
+MOV EAX,1
+B8 01000000
+
+#################
+TEST DH,01
+F6C6 01
+C6 = 1100 0110 = 11 000 110
+11 means register
+000 is /0 TEST Eb Ib
+110 means DH (6)
+################
+TEST EDX,00800000
+F7 C2 00008000
+C2 = 1100 0010 = 11 000 010
+11 means register
+000 is /0 TEST Ev Iv
+010 is EDH
+#################
+OR DWORD PTR DS:[408038],00000080
+81 0D 38804000 80000000
+0D = 0000 1101 = 00 001 101
+00 means no displacement, indirect
+001 means /1 OR Ev Iv
+101 means absolute address
+###################
+AND EAX,1
+83 E0 01
+E0 = 1110 0000 = 11 100 000
+11 means register
+100 means /4 AND Ev Ibs
+000 means EAX
+################
+OR DWORD PTR DS:[408038],00000040
+83 0D 38804000 40
+0D = 0000 1101 = 00 001 101
+00 means no displacement, indirect
+001 means /1 OR Ev Ibs
+101 means absolute address
+##################
+MOV DWORD PTR SS:[EBP-28],0
+C7 45 D8 00000000
+45 = 0100 0101 = 01 000 101
+01 means 1 byte displacement, indirect
+000 means /0 MOV Ev Iv
+101 means EBP
+#################
+LEA EDX,[EBP-28]
+8D 55 D8
+55 = 0101 0101 = 01 010 101
+01 means 1B displacement (LEA is Gv M, so Mod != 11 anyway)
+010 is EDX
+101 is EBP
+
+###############
+CALL DWORD PTR DS:[EBX*4+404B50]
+FF 14 9D 504B4000
+14 = 0001 0100 = 00 010 100
+00 means no displacement
+010 means /2 CALL Ev
+100 means use SIB
+SIB byte is 9D = 1001 1101 = 10 011 101
+10 means *4 (2^2)
+011 means EBX
+101 means use 32 bit displacement (instead of EBP)
+################
+FILD DWORD PTR SS:[EBP-1C]
+DB 45 E4
+45 = 0100 0101 = 01 000 101
+01 means 1B displacement
+000 is /0
+101 means EBP
