@@ -39,13 +39,13 @@ void Disassembler::analyze()
 
 	// Build initial branches vector and refs map
 	branches.clear();
-	for (std::pair<uint8_t* ,std::vector<uint8_t>> elem : code)
+	for (std::pair<uint32_t ,std::vector<uint8_t>> elem : code)
 	{
 		insType iType = getInstructionType(elem.second);
 		if (iType==insType::condJump)
 		{
-			uint8_t* dest = getBranchDest(elem.first, elem.second);
-			if (dest==(uint8_t*)-1)
+			uint32_t dest = getBranchDest(elem.first, elem.second);
+			if (dest==(uint32_t)-1)
 				branches.push_back({BranchType::regCondJump, elem.first, dest});
 			else
 			{
@@ -55,8 +55,8 @@ void Disassembler::analyze()
 		}
 		else if (iType==insType::uncondJump)
 		{
-			uint8_t* dest = getBranchDest(elem.first, elem.second);
-			if (dest==(uint8_t*)-1)
+			uint32_t dest = getBranchDest(elem.first, elem.second);
+			if (dest==(uint32_t)-1)
 				branches.push_back({BranchType::regJump, elem.first, dest});
 			else
 			{
@@ -66,8 +66,8 @@ void Disassembler::analyze()
 		}
 		else if (iType==insType::call)
 		{
-			uint8_t* dest = getBranchDest(elem.first, elem.second);
-			if (dest==(uint8_t*)-1)
+			uint32_t dest = getBranchDest(elem.first, elem.second);
+			if (dest==(uint32_t)-1)
 				branches.push_back({BranchType::regCall, elem.first, dest});
 			else
 			{
@@ -114,7 +114,7 @@ void Disassembler::analyze()
 	**/
 }
 
-Block Disassembler::readBlocks(uint8_t* addr)
+Block Disassembler::readBlocks(uint32_t addr)
 {
 	//cout << "Reading 0x"<<hex<<(int)addr-(int)data<<dec<<" ";
 	vector<uint8_t> firstIns=code[addr];
@@ -126,7 +126,7 @@ Block Disassembler::readBlocks(uint8_t* addr)
 		if (ignoreErrors)
 		{
 			Block errorBlock;
-			errorBlock.startAddr=errorBlock.endAddr=(uint8_t*)-1;
+			errorBlock.startAddr=errorBlock.endAddr=(uint32_t)-1;
 			//errorBlock.analyzed=true;
 			if (isAddrInternal(addr+1) && !isAddrInBlock(addr+1))
 				readBlocks(addr+1);
@@ -145,8 +145,8 @@ Block Disassembler::readBlocks(uint8_t* addr)
 	if (iType==insType::condJump)
 	{
 		blocks.push_back(block);
-		uint8_t* jumpDest = getBranchDest(addr, firstIns);
-		if (jumpDest!=(uint8_t*)-1 && isAddrInternal(jumpDest))
+		uint32_t jumpDest = getBranchDest(addr, firstIns);
+		if (jumpDest!=(uint32_t)-1 && isAddrInternal(jumpDest))
 			if (!isAddrInBlock(jumpDest))
 			{
 				//cout << "Jumping cond to taken 0x"<<hex<<(int)jumpDest-(int)data<<dec<<"\n";
@@ -162,8 +162,8 @@ Block Disassembler::readBlocks(uint8_t* addr)
 	else if(iType==insType::uncondJump)
 	{
 		blocks.push_back(block);
-		uint8_t* jumpDest = getBranchDest(addr, firstIns);
-		if (jumpDest!=(uint8_t*)-1 && isAddrInternal(jumpDest))
+		uint32_t jumpDest = getBranchDest(addr, firstIns);
+		if (jumpDest!=(uint32_t)-1 && isAddrInternal(jumpDest))
 			if (!isAddrInBlock(jumpDest))
 			{
 				//cout << "Jumping cond to taken 0x"<<hex<<(int)jumpDest-(int)data<<dec<<"\n";
@@ -204,8 +204,8 @@ Block Disassembler::readBlocks(uint8_t* addr)
 		{
 			block.endAddr+=insSize;
 			blocks.push_back(block);
-			uint8_t* jumpDest = getBranchDest(addr, ins);
-			if (jumpDest!=(uint8_t*)-1 && isAddrInternal(jumpDest))
+			uint32_t jumpDest = getBranchDest(addr, ins);
+			if (jumpDest!=(uint32_t)-1 && isAddrInternal(jumpDest))
 				if (!isAddrInBlock(jumpDest))
 				{
 					//cout << "Jumping cond to taken 0x"<<hex<<(int)jumpDest-(int)data<<dec<<"\n";
@@ -222,8 +222,8 @@ Block Disassembler::readBlocks(uint8_t* addr)
 		{
 			block.endAddr+=insSize;
 			blocks.push_back(block);
-			uint8_t* jumpDest = getBranchDest(addr, ins);
-			if (jumpDest!=(uint8_t*)-1 && isAddrInternal(jumpDest))
+			uint32_t jumpDest = getBranchDest(addr, ins);
+			if (jumpDest!=(uint32_t)-1 && isAddrInternal(jumpDest))
 				if (!isAddrInBlock(jumpDest))
 				{
 					//cout << "Jumping uncond to taken 0x"<<hex<<(int)jumpDest-(int)data<<dec<<"\n";

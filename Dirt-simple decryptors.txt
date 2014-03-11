@@ -1,0 +1,38 @@
+####### ASM CODE
+; start is the addr of the first dword to decrypt
+; end is the addr just after the last dword to decrypt
+; key is a random immediate nonzero DWORD for decryption
+
+####### Simple decryptor, easy to analyze, not too suspicious.
+It clearly does what it says on the tin, no tricks or weird behavior. 
+Only data is manipulated (xor), so hopefully this isn't too suspicious.
+8D0D DATASTART-DWORDPTR
+8B01
+35 XOR-KEY-DWORD
+8901
+83C1 04
+8D05 DATAEND-DWORDPTR
+3BC8
+76 EA
+E9 OLDENTRYPOINT
+
+######### Decryptor using stack manipulation to ret first to the decryptor, then the old entry point
+The idea is to trick analysis into thinking the ret is safe and used to go to the decryptor. 
+But it's also used to jump to the old EP, whose address is obfuscated. This way static analysis is in trouble to find the real entry point.
+On the other end, this code is probably more suspicious.
+Let's say the old EP you want to go to is 00401570, and XXXX is a random value, replace the old EP at bytes 3 and 37
+68 XXXX4000
+68 DECRYPTOR-ADDR-PLUS-18-DWORDPTR
+6658
+BA 66687015
+C3
+
+8D0D DATASTART-DWORDPTR
+8B01
+35 XOR-KEY-DWORD
+8901
+83C1 04
+8D05 DATAEND-DWORDPTR
+3BC8
+76 EA
+EB DF

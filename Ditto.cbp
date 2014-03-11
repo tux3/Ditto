@@ -11,7 +11,7 @@
 				<Option object_output="obj/Debug/" />
 				<Option type="1" />
 				<Option compiler="gcc" />
-				<Option parameters="test.exe -s -o testMorphed.exe -r 100" />
+				<Option parameters="test.exe -s -e .data -o testMorphed.exe " />
 				<Compiler>
 					<Add option="-O0" />
 					<Add option="-g" />
@@ -22,7 +22,7 @@
 				<Option object_output="obj/Release/" />
 				<Option type="1" />
 				<Option compiler="gcc" />
-				<Option parameters="test.exe -s -o testMorphed.exe -r 100" />
+				<Option parameters="test.exe -s -e .data -o testMorphed.exe " />
 				<Compiler>
 					<Add option="-fomit-frame-pointer" />
 					<Add option="-fexpensive-optimizations" />
@@ -39,7 +39,7 @@
 				<Option object_output="obj/Profile/" />
 				<Option type="1" />
 				<Option compiler="gcc" />
-				<Option parameters="test.exe -s -o testMorphed.exe -r 100 -f" />
+				<Option parameters="test.exe -s -e .data -o testMorphed.exe " />
 				<Compiler>
 					<Add option="-fexpensive-optimizations" />
 					<Add option="-O3" />

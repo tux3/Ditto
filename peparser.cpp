@@ -5,7 +5,7 @@
 
 using namespace std;
 
-PEParser::PEParser(uint8_t* Data, size_t DataSize)
+PEParser::PEParser(uint8_t*& Data, size_t& DataSize)
 : ObjectParser(Data, DataSize)
 {
 	//DOS header
@@ -63,8 +63,15 @@ PEParser::PEParser(uint8_t* Data, size_t DataSize)
 		uint8_t* pStart = data+h->rawDataOffset;
 		uint8_t* vStart = virtualImage+h->virtualAddress;
 		size_t loadSize = min(h->rawDataSize, h->virtualSize);
+		memcpy(((uint8_t*)h)-(uint32_t)data+(uint32_t)virtualImage, h, sizeof(SectionHeader));
 		memcpy(vStart, pStart, loadSize);
 	}
+
+	// Rebase our various pointers on the virtual image
+	for (uint8_t i=0; i<sectionHeaders.size(); ++i)
+		sectionHeaders[i] = (SectionHeader*)((uint8_t*)sectionHeaders[i] + (uint32_t)virtualImage - (uint32_t)data);
+	coffHeader = (COFFHeader*)((uint8_t*)coffHeader + (uint32_t)virtualImage - data);
+	peHeader = (PEOptHeader*)((uint8_t*)peHeader+ (uint32_t)virtualImage - data);
 }
 
 std::vector<std::string> PEParser::getSectionNames()
@@ -104,7 +111,7 @@ std::pair<uint8_t*,size_t> PEParser::getSectionData(std::string sectionName)
 //	return sectionData;
 }
 
-uint8_t* PEParser::getEntryPoint()
+uint32_t PEParser::getEntryPoint()
 {
 	// Find the section containing the entry point
 	// substract virtual offset from RVA entry point to get physical entry point
@@ -114,7 +121,7 @@ uint8_t* PEParser::getEntryPoint()
 		unsigned long start = h->virtualAddress;
 		unsigned long limit = start+h->virtualSize;
 		if (entry>start && entry<limit)
-			return virtualImage + entry;
+			return entry;
 	}
 	throw "Can't find the section containing the entry point";
 }
@@ -137,13 +144,13 @@ uint32_t PEParser::getRelEntryPoint()
 	throw "Can't find the section containing the entry point";
 }
 
-uint8_t* PEParser::getSectionRawAddr(std::string sectionName)
+uint32_t PEParser::getSectionRawAddr(std::string sectionName)
 {
 	auto it = find_if(begin(sectionHeaders), end(sectionHeaders),
 					[sectionName](SectionHeader* h){return string(string(h->name,8).c_str())==sectionName;});
     if (it==end(sectionHeaders))
 		throw std::invalid_argument("Section does not exist");
-	return (uint8_t*)(*it)->rawDataOffset;
+	return (uint32_t)(*it)->rawDataOffset;
 }
 
 size_t PEParser::getSectionRawSize(std::string sectionName)
@@ -155,16 +162,13 @@ size_t PEParser::getSectionRawSize(std::string sectionName)
 	return (*it)->rawDataSize;
 }
 
-uint8_t* PEParser::getSectionVirtualAddr(std::string sectionName)
+uint32_t PEParser::getSectionVirtualAddr(std::string sectionName)
 {
-	uint8_t* vAddr;
 	auto it = find_if(begin(sectionHeaders), end(sectionHeaders),
 					[sectionName](SectionHeader* h){return string(string(h->name,8).c_str())==sectionName;});
     if (it==end(sectionHeaders))
 		throw std::invalid_argument("Section does not exist");
-	vAddr=(uint8_t*)(*it)->virtualAddress;
-
-	return vAddr;
+	return (uint32_t)(*it)->virtualAddress;
 }
 
 size_t PEParser::getSectionVirtualSize(std::string sectionName)
@@ -176,20 +180,20 @@ size_t PEParser::getSectionVirtualSize(std::string sectionName)
 	return (*it)->virtualSize;
 }
 
-uint8_t* PEParser::getVirtualImage()
+uint8_t*& PEParser::getVirtualImage()
 {
 	return virtualImage;
 }
 
-std::pair<uint8_t*,uint8_t*> PEParser::getSectionVirtualBounds(std::string sectionName)
+std::pair<uint32_t,uint32_t> PEParser::getSectionVirtualBounds(std::string sectionName)
 {
 	auto it = find_if(begin(sectionHeaders), end(sectionHeaders),
 					[sectionName](SectionHeader* h){return string(string(h->name,8).c_str())==sectionName;});
     if (it==end(sectionHeaders))
 		throw std::invalid_argument("Section does not exist");
-	uint8_t* start=virtualImage+(*it)->virtualAddress;
-	uint8_t* end=start+(*it)->virtualSize;
-	return pair<uint8_t*,uint8_t*>(start,end);
+	uint32_t start=(*it)->virtualAddress;
+	uint32_t end=start+(*it)->virtualSize;
+	return pair<uint32_t,uint32_t>(start,end);
 }
 
 uint32_t PEParser::getImageBase()
@@ -202,17 +206,17 @@ uint32_t PEParser::getCodeBase()
 	return peHeader->baseOfCode;
 }
 
-std::vector<std::pair<uint8_t*,uint8_t*>> PEParser::getCodeSectionsVirtualBounds()
+std::vector<std::pair<uint32_t,uint32_t>> PEParser::getCodeSectionsVirtualBounds()
 {
-	vector<std::pair<uint8_t*,uint8_t*>> bounds;
+	vector<std::pair<uint32_t,uint32_t>> bounds;
     for (SectionHeader* h : sectionHeaders)
 	{
 		if (h->characteristics & IMAGE_SCN_CNT_CODE)
 		{
 			//cout << "CODE SECTION:"<<string(h->name,8)<<"\n";
 			size_t size = min(h->virtualSize, h->rawDataSize);
-			uint8_t* virtualStart=(uint8_t*)virtualImage+h->virtualAddress;
-			bounds.push_back(pair<uint8_t*,uint8_t*>{virtualStart,virtualStart+size});
+			uint32_t virtualStart=h->virtualAddress;
+			bounds.push_back(pair<uint32_t,uint32_t>{virtualStart,virtualStart+size});
 		}
 	}
 	return bounds;
@@ -221,7 +225,7 @@ std::vector<std::pair<uint8_t*,uint8_t*>> PEParser::getCodeSectionsVirtualBounds
 void PEParser::updateDataFromVirtualImage()
 {
 	// Copy the headers back
-	size_t headersSize=(uint8_t*)(sectionHeaders.back()+1) - data;
+	size_t headersSize=((uint8_t*)(sectionHeaders.back()+1)) - virtualImage;
 	memcpy(data, virtualImage, headersSize);
 
 	// Copy the sections back
@@ -232,4 +236,73 @@ void PEParser::updateDataFromVirtualImage()
 		size_t loadSize = min(h->rawDataSize, h->virtualSize);
 		memcpy(pStart, vStart, loadSize);
 	}
+}
+
+void PEParser::setEntryPoint(uint32_t value)
+{
+	peHeader->addressOfEntryPoint = value;
+}
+
+uint32_t PEParser::addSection(std::string name, size_t size, uint32_t flags)
+{
+	/// TODO: We need to align our shit on
+	uint32_t alignedRawStart = dataSize + peHeader->fileAlignment - dataSize%peHeader->fileAlignment;
+	uint32_t alignedVStart = virtualImageSize + peHeader->sectionAlignment - virtualImageSize%peHeader->sectionAlignment;
+
+	uint32_t alignedRawEnd = alignedRawStart + size;
+	alignedRawEnd = alignedRawEnd + peHeader->fileAlignment - alignedRawEnd%peHeader->fileAlignment;
+	uint32_t alignedVEnd = alignedVStart + size;
+	alignedVEnd = alignedVEnd + peHeader->sectionAlignment - alignedVEnd%peHeader->sectionAlignment;
+
+	// Check if there's room
+	size_t newHeadersSize=(uint8_t*)(sectionHeaders.back()+2) - virtualImage;
+	if (newHeadersSize >= sectionHeaders[0]->rawDataOffset)
+		throw "Not enough room for new section header";
+
+	// Realloc
+	uint8_t* oldImageAddr = virtualImage;
+	data = (uint8_t*)realloc(data, alignedRawEnd);
+	virtualImage = (uint8_t*)realloc(virtualImage,alignedVEnd);
+
+	// Rebase headers
+	for (uint8_t i=0; i<sectionHeaders.size(); ++i)
+		sectionHeaders[i] = (SectionHeader*)((uint32_t)sectionHeaders[i] - (uint32_t)oldImageAddr + (uint32_t)virtualImage);
+	coffHeader = (COFFHeader*)((uint32_t)coffHeader - (uint32_t)oldImageAddr + (uint32_t)virtualImage);
+	peHeader = (PEOptHeader*)((uint32_t)peHeader - (uint32_t)oldImageAddr + (uint32_t)virtualImage);
+
+	// Create section header
+	// (the section data isn't in the virtual image, since we can't realloc without invalidating all pointers)
+	// (when we copy back to the raw data, we'll still copy the section, even if it's not really in the virtual image)
+	SectionHeader* newHeader = (sectionHeaders.back()+1);
+	newHeader->characteristics=flags;
+	newHeader->lineNumbersOffset=0;
+	strncpy(newHeader->name, name.c_str(), 8);
+	newHeader->numberOfLineNumbers=0;
+	newHeader->numberOfRelocations=0;
+	newHeader->rawDataOffset=alignedRawStart;
+	newHeader->rawDataSize=alignedRawEnd - alignedRawStart;
+	newHeader->relocationsOffset=0;
+	newHeader->virtualAddress=alignedVStart;
+	newHeader->virtualSize=alignedVEnd - alignedVStart;
+	sectionHeaders.push_back(newHeader);
+
+	// Update metadata
+	coffHeader->numberOfSections++;
+	peHeader->sizeOfImage += alignedVEnd - alignedVStart;
+	if (flags & IMAGE_SCN_CNT_CODE)
+	{
+		peHeader->sizeOfCode += alignedVEnd - alignedVStart;
+		peHeader->sizeOfInitializedData += alignedVEnd - alignedVStart;
+	}
+
+	// Update sizes
+	dataSize = alignedRawEnd;
+	virtualImageSize = alignedVEnd;
+
+	return (uint32_t)newHeader->virtualAddress;
+}
+
+pair<uint8_t*,size_t> PEParser::getData()
+{
+	return pair<uint8_t*,size_t>(data,dataSize);
 }

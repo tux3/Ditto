@@ -2,11 +2,11 @@
 
 using namespace std;
 
-uint8_t Disassembler::readInstruction(uint8_t* addr)
+uint8_t Disassembler::readInstruction(uint32_t addr)
 {
 	vector<uint8_t> instruction;
 	uint8_t instructionSize = 0;
-	uint8_t op = *addr;
+	uint8_t op = *(virtualImage+addr);
 	bool pf1=false; // Prefix of group 1 present
 	bool pf2=false; // Prefix of group 2 present
 	bool opSize=false; // Operand-size override
@@ -26,28 +26,28 @@ uint8_t Disassembler::readInstruction(uint8_t* addr)
 			keepSearchingPrefixes=true;
 			pf1=true;
 			addr++;
-			op=*addr;
+			op=*(virtualImage+addr);
 		}
 		if (op==0x67)
 		{
 			keepSearchingPrefixes=true;
 			adSize=true;
 			addr++;
-			op=*addr;
+			op=*(virtualImage+addr);
 		}
 		if (op==0x66)
 		{
 			keepSearchingPrefixes=true;
 			opSize=true;
 			addr++;
-			op=*addr;
+			op=*(virtualImage+addr);
 		}
 		if (op==0x2E || op==0x36 || op==0x3E || op==0x26 || op==0x64 || op==0x65)
 		{
 			keepSearchingPrefixes=true;
 			pf2=true;
 			addr++;
-			op=*addr;
+			op=*(virtualImage+addr);
 		}
 	}
 
@@ -63,7 +63,7 @@ uint8_t Disassembler::readInstruction(uint8_t* addr)
 	}
 
 	// Two or more bytes instructions from now on
-	uint8_t op2 = *(addr+1);
+	uint8_t op2 = *(virtualImage+addr+1);
 
 	// One opcode instructions (but >1 bytes)
 	if (op==0x05 || op==0x0D || op==0x25 || op==0x2D || op==0x35 || op==0x3D || op==0x68 || op==0xA9
@@ -83,7 +83,7 @@ uint8_t Disassembler::readInstruction(uint8_t* addr)
 			instructionSize=3;
 		else if (getMod(op2)==0 && getRM(op2)==4) // No displacement, SIB
 		{
-			uint8_t op3=*(addr+2);
+			uint8_t op3=*(virtualImage+addr+2);
 			if (op3==5) // Full displacement
 				instructionSize=8;
 			else // No displacement
@@ -93,7 +93,7 @@ uint8_t Disassembler::readInstruction(uint8_t* addr)
 			instructionSize=7;
 		else if (getMod(op2)==0 && getRM(op2)==4) // No displacement, SIB
 		{
-			uint8_t op3 = *(addr+2);
+			uint8_t op3 = *(virtualImage+addr+2);
             if (getRM(op3)!=5) // No displacement
 				instructionSize=4;
 		}
@@ -138,7 +138,7 @@ uint8_t Disassembler::readInstruction(uint8_t* addr)
 			instructionSize=6;
 		else if (getMod(op2)==0 && getRM(op2)==4) // No displacement, SIB
 		{
-			uint8_t op3=*(addr+2);
+			uint8_t op3=*(virtualImage+addr+2);
 			if (getRM(op3)!=5) // No displacement
 				instructionSize=7;
 		}
@@ -166,7 +166,7 @@ uint8_t Disassembler::readInstruction(uint8_t* addr)
 			instructionSize=3;
 		else if (getMod(op2)==0 && getRM(op2)==4) // No displacement, SIB
 		{
-			uint8_t op3=*(addr+2);
+			uint8_t op3=*(virtualImage+addr+2);
 			if (getRM(op3)!=5) // No displacement
 				instructionSize=4;
 			else // Full displacement
@@ -195,7 +195,7 @@ uint8_t Disassembler::readInstruction(uint8_t* addr)
 			instructionSize=2;
 		else if (getMod(op2)==0 && getRM(op2)==4) // No displacement, SIB
 		{
-			uint8_t op3=*(addr+2);
+			uint8_t op3=*(virtualImage+addr+2);
 			if (getRM(op3)==5) // Full displacement
 				instructionSize=7;
 			else // No displacement
@@ -225,7 +225,7 @@ uint8_t Disassembler::readInstruction(uint8_t* addr)
 			instructionSize=2;
 		else if (getMod(op2)==0 && getRM(op2)==4) // No displacement, SIB byte
 		{
-			uint8_t op3=*(addr+2);
+			uint8_t op3=*(virtualImage+addr+2);
 			if (getRM(op3)!=5) // No displacement
 				instructionSize=3;
 			else // Full displacement
@@ -251,7 +251,7 @@ uint8_t Disassembler::readInstruction(uint8_t* addr)
 			instructionSize=6;
 		else if (getMod(op2)==0 && getRM(op2)==4) // no displacement, SIB
 		{
-			uint8_t op3=*(addr+2);
+			uint8_t op3=*(virtualImage+addr+2);
 			if (getRM(op3)==5) // Full displacement
 				instructionSize=7;
 			else // No displacement
@@ -278,7 +278,7 @@ uint8_t Disassembler::readInstruction(uint8_t* addr)
 			instructionSize=6;
 		else if (getMod(op2)==0 && getRM(op2)==4) // No displacement, SIB
 		{
-			uint8_t op3 = *(addr+2);
+			uint8_t op3 = *(virtualImage+addr+2);
 			if (getRM(op3)!=5) // No displacement
 				instructionSize=3;
 			else // Full displacement
@@ -305,7 +305,7 @@ uint8_t Disassembler::readInstruction(uint8_t* addr)
 			instructionSize=6;
 		else if (getMod(op2)==0 && getRM(op2)==4) // No displacement, using SIB byte
 		{
-			uint8_t op3=*(addr+2);
+			uint8_t op3=*(virtualImage+addr+2);
 			if (getRM(op3)!=5) // No displacement
 				instructionSize=7;
 			else // Full displacement
@@ -335,7 +335,7 @@ uint8_t Disassembler::readInstruction(uint8_t* addr)
 			instructionSize=6;
 		else if (getMod(op2)==0 && getRM(op2)==4) // no displacement, SIB
 		{
-			uint8_t op3=*(addr+2);
+			uint8_t op3=*(virtualImage+addr+2);
 			if (getRM(op3)==5) // Full displacement
 				instructionSize=7;
 			else // No displacement
@@ -393,10 +393,13 @@ uint8_t Disassembler::readInstruction(uint8_t* addr)
 			else if (getMod(op2)==3) // /0 direct register
 				instructionSize=2;
 		}
+		else if ((getReg(op2)==5)
+				&& getMod(op2)==0 && getRM(op2)==5) // /3,5 or /7, Absolute address
+				instructionSize=6;
 		else if ((getReg(op2)==3||getReg(op2)==5||getReg(op2)==7)
 				&& getMod(op2)==0 && getRM(op2)==4) // /3,5 or /7, No displacement, SIB
 		{
-            uint8_t op3=*(addr+2);
+            uint8_t op3=*(virtualImage+addr+2);
             if (getRM(op3)!=5) // No displacement
 				instructionSize=3;
 		}
@@ -439,7 +442,7 @@ uint8_t Disassembler::readInstruction(uint8_t* addr)
 			instructionSize=6;
 		else if (getMod(op2)==0 && getRM(op2)==4) // No displacement, SIB
 		{
-			uint8_t op3=*(addr+2);
+			uint8_t op3=*(virtualImage+addr+2);
 			if (getRM(op3)!=5) // No displacement
 				instructionSize=3;
 		}
@@ -465,7 +468,7 @@ uint8_t Disassembler::readInstruction(uint8_t* addr)
 			instructionSize=2;
 		else if (getMod(op2)==0 && getRM(op2)==4) // No displacement, SIB
 		{
-			uint8_t op3=*(addr+2);
+			uint8_t op3=*(virtualImage+addr+2);
 			if (getRM(op3)==5) // Full displacement
 				instructionSize=7;
 		}
@@ -499,7 +502,7 @@ uint8_t Disassembler::readInstruction(uint8_t* addr)
 				instructionSize=6;
 			else if (getMod(op2)==0 && getRM(op2)==4) // no displacement, SIB
 			{
-				uint8_t op3=*(addr+2);
+				uint8_t op3=*(virtualImage+addr+2);
 				if (getRM(op3)==5) // Full displacement
 					instructionSize=7;
 				else // No displacement
@@ -524,7 +527,7 @@ uint8_t Disassembler::readInstruction(uint8_t* addr)
 				instructionSize=6;
 			else if (getMod(op2)==0 && getRM(op2)==4) // no displacement, SIB
 			{
-				uint8_t op3=*(addr+2);
+				uint8_t op3=*(virtualImage+addr+2);
 				if (getRM(op3)!=5) // No displacement
 					instructionSize=3;
 			}
@@ -575,7 +578,7 @@ uint8_t Disassembler::readInstruction(uint8_t* addr)
 		else if((getReg(op2)==0||getReg(op2)==3||getReg(op2)==5||getReg(op2)==7)
 				&& getMod(op2)==0 && getRM(op2)==4) // /0,/3,/5 or /7, no displacement, SIB
 		{
-			uint8_t op3=*(addr+2);
+			uint8_t op3=*(virtualImage+addr+2);
 			if (getRM(op3)!=5)
 				instructionSize=3; // No displacement
 		}
@@ -601,7 +604,7 @@ uint8_t Disassembler::readInstruction(uint8_t* addr)
 				instructionSize=3;
 			else if (getMod(op2)==0 && getRM(op2)==4) // No displacement, SIB
 			{
-				uint8_t op3=*(addr+2);
+				uint8_t op3=*(virtualImage+addr+2);
 				if (getRM(op3)==5) // Full displacement
 					instructionSize=8;
 				else // No displacement
@@ -658,7 +661,7 @@ uint8_t Disassembler::readInstruction(uint8_t* addr)
 		{
 			if (getMod(op2)==0 && getRM(op2)==4) // No displacement, SIB
 			{
-				uint8_t op3=*(addr+2);
+				uint8_t op3=*(virtualImage+addr+2);
 				if (getRM(op3)==5) // Full displacement
 					instructionSize=7;
 				else // No displacement
@@ -704,7 +707,7 @@ uint8_t Disassembler::readInstruction(uint8_t* addr)
 			instructionSize=6;
 		else if (getMod(op2)==0 && getRM(op2)==4) // No displacement, SIB
 		{
-			uint8_t op3 = *(addr+2);
+			uint8_t op3 = *(virtualImage+addr+2);
 			if (getRM(op3)==5) // SIB w/ Full 4B displacement
 				instructionSize=7;
 			else // No displacement
@@ -734,7 +737,7 @@ uint8_t Disassembler::readInstruction(uint8_t* addr)
 	// Extended two opcodes instructions
 	if (op==0x0F)
 	{
-		uint8_t op3 = *(addr+2);
+		uint8_t op3 = *(virtualImage+addr+2);
 		if (op2>=0x80&&op2<=0x8F) // JXX Jv
 		{
 			instructionSize=6;
@@ -751,7 +754,7 @@ uint8_t Disassembler::readInstruction(uint8_t* addr)
 				instructionSize=7;
 			else if (getMod(op3)==0 && getRM(op3)==4) // No displacement, SIB
 			{
-				uint8_t op4=*(addr+3);
+				uint8_t op4=*(virtualImage+addr+3);
 				if (getRM(op4)!=5)
 					instructionSize=4;
 			}
@@ -776,7 +779,7 @@ uint8_t Disassembler::readInstruction(uint8_t* addr)
 				instructionSize=7;
 			else if (getMod(op3)==0 && getRM(op3)==4) // No displacement, SIB
 			{
-				uint8_t op4=*(addr+3);
+				uint8_t op4=*(virtualImage+addr+3);
 				if (getRM(op4)!=5) // No displacement
 					instructionSize=4;
 				else // Full displacement
@@ -804,7 +807,7 @@ uint8_t Disassembler::readInstruction(uint8_t* addr)
 				instructionSize=7;
 			else if (getMod(op3)==0 && getRM(op3)==4) // No displacement, SIB
 			{
-				uint8_t op4=*(addr+3);
+				uint8_t op4=*(virtualImage+addr+3);
 				if (getRM(op4)!=5) // No displacement
 					instructionSize=4;
 				else // Full displacement
@@ -832,7 +835,7 @@ uint8_t Disassembler::readInstruction(uint8_t* addr)
 				instructionSize=4;
 			else if (getMod(op2)==0 && getRM(op2)==4) // No displacement, SIB
 			{
-				uint8_t op3=*(addr+2);
+				uint8_t op3=*(virtualImage+addr+2);
 				if (getRM(op3)==5) // Full displacement
 					instructionSize=9;
 				else // No displacement

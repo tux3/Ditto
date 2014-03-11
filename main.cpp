@@ -28,21 +28,22 @@ void exitWithError()
 int main(int argc, char* argv[])
 {
 	// Parse arguments
-	string argPath, argOut, argRandStr;
+	string argPath, argOut, argRandStr, argEncryptSectionName;
 	int argRand=65;
 	bool argSubstitute=false, argForce=false, argForceCode=false;
 	char c;
-	while ((c = getopt (argc, argv, "shfo:r:")) != -1)
+	while ((c = getopt (argc, argv, "shfo:r:e:")) != -1)
          switch (c)
            {
             case 'h':
-            cout << "Ditto, a generic metamorphic engine\nUsage : ditto [-hsfF] [-r n] -o output input\n\n\
+            cout << "Ditto, a generic metamorphic engine\nUsage : ditto [-hsfF] [-e s] [-r n] -o output input\n\n\
 -o f\tOutput file\n\
 -r n\tProbability, between 1 and 100, of each operations of the transforms. 65 by default.\n\
 -h  \tShow this help\n\
 -s  \tIn-place subsitution:Replace instructions with equivalent instructions of the same size\n\
+-e s\tEncrypts the section s, the entry point will be moved to a polymorphic decryptor\n\
 -f  \tForcefully continue, at the risk of generating an incorrect result.\n\
--F  \tForce the disassembler to treat everything as code, and try to read it.\n";
+-F  \tForce the disassembler to treat more things as code, and try to read it.\n";
 			exit(0);
             break;
 			case 's':
@@ -53,6 +54,9 @@ int main(int argc, char* argv[])
             break;
             case 'r':
             argRandStr = optarg;
+            break;
+            case 'e':
+            argEncryptSectionName = optarg;
             break;
             case 'f':
             argForce = true;
@@ -65,8 +69,10 @@ int main(int argc, char* argv[])
                fprintf (stderr, "Option -o requires an argument.\n");
 			 else if (optopt == 'r')
                fprintf (stderr, "Option -r requires a numerical argument.\n");
+			 else if (optopt == 'e')
+               fprintf (stderr, "Option -e requires the name of a section.\n");
              else if (isprint (optopt))
-               fprintf (stderr, "Unknown option `-%c'.\n", optopt);
+               fprintf (stderr, "Unknown option `-%c' or missing argument.\n", optopt);
              else
                fprintf (stderr,
                         "Unknown option character `\\x%x'.\n",
@@ -194,7 +200,7 @@ int main(int argc, char* argv[])
 	cout << "Analysis...";
 	Transform* trans;
 	try {
-		trans = new Transform(*disasm,argRand); // The ctor performs the analysis
+		trans = new Transform(*disasm,*parser,argRand); // The ctor performs the analysis
 	}
 	catch (const char* e) {
 		exitWithError(string("FAIL (")+e+")\nAborting.\n");
@@ -214,6 +220,22 @@ int main(int argc, char* argv[])
 		cout << "OK ("<<nOps<<" instructions)\n";
 	}
 
+	if (!argEncryptSectionName.empty())
+	{
+		cout << "Encrypting...";
+		unsigned short decryptorUsed;
+		try {
+			decryptorUsed=trans->encryptSection(argEncryptSectionName);
+		}
+		catch (const char* e) {
+			exitWithError(string("FAIL (")+e+")\nAborting.\n");
+		}
+		if (decryptorUsed)
+			cout << "OK (decryptor "<<decryptorUsed<<")\n";
+		else
+			cout << "OK\n";
+	}
+
 	cout << "Rebuilding...";
 	/** DONE:
 	/// Have the disassembler implement a updataVirtualImageFromInstructions()
@@ -225,11 +247,12 @@ int main(int argc, char* argv[])
 	/// Then directly write the data buffer.
 	disasm->updateVirtualImageFromInstructions();
 	parser->updateDataFromVirtualImage();
+	pair<uint8_t*,size_t> newData = parser->getData();
 	fstream outFile;
 	outFile.open(argOut.c_str(),ios_base::out | ios_base::binary | ios_base::trunc);
 	if (!outFile.is_open())
-		exitWithError();
-	outFile.write((char*)data, dataSize);
+		exitWithError("Failed to open output file");
+	outFile.write((char*)newData.first, newData.second);
 	outFile.close();
 	cout << "OK ("<<dataSize<<" bytes)\n";
 

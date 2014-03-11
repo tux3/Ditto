@@ -1,5 +1,5 @@
 # depslib dependency file v1.0
-1394389791 source:c:\users\tux\documents\dev\projects\ditto\main.cpp
+1394483720 source:c:\users\tux\documents\dev\projects\ditto\main.cpp
 	<iostream>
 	<fstream>
 	<string>
@@ -13,22 +13,22 @@
 	"disassembler.h"
 	"transform.h"
 
-1394121792 source:c:\users\tux\documents\dev\projects\ditto\objectparser.cpp
+1394475884 source:c:\users\tux\documents\dev\projects\ditto\objectparser.cpp
 	"objectparser.h"
 	<iostream>
 
-1394374669 c:\users\tux\documents\dev\projects\ditto\objectparser.h
+1394493933 c:\users\tux\documents\dev\projects\ditto\objectparser.h
 	<stddef.h>
 	<vector>
 	<string>
 
-1394387508 source:c:\users\tux\documents\dev\projects\ditto\peparser.cpp
+1394494365 source:c:\users\tux\documents\dev\projects\ditto\peparser.cpp
 	"peparser.h"
 	<iostream>
 	<algorithm>
 	<mem.h>
 
-1394374675 c:\users\tux\documents\dev\projects\ditto\peparser.h
+1394493981 c:\users\tux\documents\dev\projects\ditto\peparser.h
 	"objectparser.h"
 	<stdint.h>
 
@@ -41,12 +41,12 @@
 	<stdint.h>
 	<stddef.h>
 
-1394391542 source:c:\users\tux\documents\dev\projects\ditto\disassembler.cpp
+1394473693 source:c:\users\tux\documents\dev\projects\ditto\disassembler.cpp
 	"disassembler.h"
 	<sstream>
 	<iostream>
 
-1394390152 c:\users\tux\documents\dev\projects\ditto\disassembler.h
+1394473892 c:\users\tux\documents\dev\projects\ditto\disassembler.h
 	"objectparser.h"
 	<vector>
 	<map>
@@ -54,25 +54,26 @@
 	<stdint.h>
 	<stddef.h>
 
-1394308690 source:c:\users\tux\documents\dev\projects\ditto\disassemblerinstructions.cpp
+1394473839 source:c:\users\tux\documents\dev\projects\ditto\disassemblerinstructions.cpp
 	"disassembler.h"
 
-1394387432 source:c:\users\tux\documents\dev\projects\ditto\transform.cpp
+1394495921 source:c:\users\tux\documents\dev\projects\ditto\transform.cpp
+	"transform.h"
+	"peparser.h"
+	<iostream>
+	<cstdlib>
+	<ctime>
+
+1394496013 c:\users\tux\documents\dev\projects\ditto\transform.h
+	"disassembler.h"
+
+1394474095 source:c:\users\tux\documents\dev\projects\ditto\transinplacesub.cpp
 	"transform.h"
 	<iostream>
 	<cstdlib>
 	<ctime>
 
-1394293537 c:\users\tux\documents\dev\projects\ditto\transform.h
-	"disassembler.h"
-
-1394193834 source:c:\users\tux\documents\dev\projects\ditto\transinplacesub.cpp
-	"transform.h"
-	<iostream>
-	<cstdlib>
-	<ctime>
-
-1394325440 source:c:\users\tux\documents\dev\projects\ditto\disassembleranalyze.cpp
+1394473864 source:c:\users\tux\documents\dev\projects\ditto\disassembleranalyze.cpp
 	"disassembler.h"
 	<sstream>
 	<iostream>

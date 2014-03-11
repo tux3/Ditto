@@ -7,10 +7,10 @@ using namespace std;
 
 unsigned Transform::substitute()
 {
-	const std::map<uint8_t* ,std::vector<uint8_t>> code = disasm.getCode();
+	const std::map<uint32_t ,std::vector<uint8_t>> code = disasm.getCode();
 	unsigned nSubs=0; // Number of substitutions made
 
-    for (std::pair<uint8_t* ,std::vector<uint8_t>> ins : code)
+    for (std::pair<uint32_t ,std::vector<uint8_t>> ins : code)
 	{
 		if (ins.second.empty())
 			continue;
@@ -158,7 +158,7 @@ unsigned Transform::substitute()
 						uint8_t base = getRM(op3);
 						ins.second[1]=(op2&0b11111000) | base; // Move the base to the ModRM:RM
 						ins.second.erase(begin(ins.second)+2); // Remove the SIB
-						pair<uint8_t* ,vector<uint8_t>> nopIns;
+						pair<uint32_t ,vector<uint8_t>> nopIns;
 						nopIns.second.push_back(0x90);
 						// Either prepend or append the NOP
 						if (::rand()%2) // Prepend

@@ -95,28 +95,33 @@ struct SectionHeader
 
 enum imageSectionCharacteristics
 {
-	IMAGE_SCN_CNT_CODE=0x00000020
+	IMAGE_SCN_CNT_CODE=0x00000020,
+	IMAGE_SCN_CNT_INITIALIZED_DATA=0x00000040,
+	IMAGE_SCN_MEM_READ_EXECUTE = 0x60000000
 };
 
 class PEParser : public ObjectParser
 {
 	public:
-		PEParser(uint8_t* Data, size_t DataSize);
+		PEParser(uint8_t*& Data, size_t& DataSize);
 		virtual ~PEParser()=default;
 		virtual std::vector<std::string> getSectionNames();
 		virtual std::pair<uint8_t*,size_t> getSectionData(std::string sectionName);
 		virtual size_t getSectionRawSize(std::string sectionName);
-		virtual uint8_t* getSectionRawAddr(std::string sectionName);
+		virtual uint32_t getSectionRawAddr(std::string sectionName);
 		virtual size_t getSectionVirtualSize(std::string sectionName);
-		virtual uint8_t* getSectionVirtualAddr(std::string sectionName);
-		virtual uint8_t* getEntryPoint();
+		virtual uint32_t getSectionVirtualAddr(std::string sectionName);
+		virtual uint32_t getEntryPoint();
 		virtual uint32_t getRelEntryPoint();
-		virtual uint8_t* getVirtualImage();
-		virtual std::pair<uint8_t*,uint8_t*> getSectionVirtualBounds(std::string sectionName);
-		virtual std::vector<std::pair<uint8_t*,uint8_t*>> getCodeSectionsVirtualBounds();
+		virtual uint8_t*& getVirtualImage();
+		virtual std::pair<uint32_t,uint32_t> getSectionVirtualBounds(std::string sectionName);
+		virtual std::vector<std::pair<uint32_t,uint32_t>> getCodeSectionsVirtualBounds();
 		virtual uint32_t getImageBase();
 		virtual uint32_t getCodeBase();
 		virtual void updateDataFromVirtualImage();
+		virtual uint32_t addSection(std::string name, size_t size, uint32_t flags);
+		virtual void setEntryPoint(uint32_t value);
+		virtual std::pair<uint8_t*,size_t> getData();
 	protected:
 	private:
 		COFFHeader* coffHeader;

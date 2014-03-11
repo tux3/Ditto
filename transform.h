@@ -6,15 +6,19 @@
 class Transform
 {
 	public:
-		Transform(Disassembler& disassembler, uint8_t Rand);
+		Transform(Disassembler& disassembler, ObjectParser& Parser, uint8_t Rand);
 		/// Substitutes instructions with equivalent instructions of the same size.
 		/// @return The number of substitutions done
 		unsigned substitute();
+		/// Encrypts a section and move the entry point to a generated polymorphic decryptor.
+		/// @return Id of the decryptor used, or 0 if a generic decryptor was used.
+		unsigned short encryptSection(std::string sectionName);
 	protected:
 		/// Uses the rand probability given in the constructor
 		bool getRandBool();
 	private:
 		Disassembler& disasm;
+		ObjectParser& parser;
 		uint8_t rand;
 };
 
@@ -53,6 +57,8 @@ Tries to find blocks of code working with a paticular register, and make it work
 The entry point will unpack the whole program before running it. Statistically FUD.
 - Function-level blending polymorphism
 Functions will be unpacked before use, and repacked before returning. Statistically FUD.
+- Data polymorphysm
+Will encrypt the section with the name passed in argument with a simple XOR, decryptor is in its own section.
 
 **/
 

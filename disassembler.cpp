@@ -7,17 +7,16 @@
 using namespace std;
 
 Disassembler::Disassembler(ObjectParser& Parser, bool forceIgnoreErrors, bool forceAssumeCodeOnly)
-: parser(Parser), ignoreErrors(forceIgnoreErrors), assumeCodeOnly{forceAssumeCodeOnly}
+: parser(Parser), virtualImage{Parser.getVirtualImage()}, ignoreErrors(forceIgnoreErrors), assumeCodeOnly{forceAssumeCodeOnly}
 {
 	// Get some info from the object parser
-	virtualImage = parser.getVirtualImage();
 	codeBounds = parser.getCodeSectionsVirtualBounds();
 	imageBase = parser.getImageBase();
 	entryPoint = parser.getEntryPoint();
 
 	// Find the bounds of the section containing the entry point
 	startOfEntrySection=endOfEntrySection=0;
-	for (pair<uint8_t*,uint8_t*>& p : codeBounds)
+	for (pair<uint32_t,uint32_t>& p : codeBounds)
 	{
 		//cout << "SEC START 0x"<<hex<<p.first-virtualImage<<dec<<endl;
 		//cout << "SEC END 0x"<<hex<<p.second-virtualImage<<dec<<endl;
@@ -37,9 +36,9 @@ Disassembler::Disassembler(ObjectParser& Parser, bool forceIgnoreErrors, bool fo
 	readCode(entryPoint);
 }
 
-void Disassembler::readCode(uint8_t* addr)
+void Disassembler::readCode(uint32_t addr)
 {
-	for (uint8_t* ip = addr; ip<endOfEntrySection ;)
+	for (uint32_t ip = addr; ip<endOfEntrySection ;)
 	{
 		if (code.find(ip)!=end(code))
 		{
@@ -129,14 +128,14 @@ void Disassembler::readCode(uint8_t* addr)
 		// Find data references
 		if (newIns[0]>=0xB8 && newIns[0]<=0xBF) // MOV Zv, Iv
 		{
-			uint8_t* ref = virtualImage-(uint32_t)imageBase+(uint32_t)(newIns[1] + ((int)newIns[2]<<8) + ((int)newIns[3]<<16) + ((int)newIns[4]<<24));
+			uint32_t ref = (uint32_t)(newIns[1] + ((int)newIns[2]<<8) + ((int)newIns[3]<<16) + ((int)newIns[4]<<24))-(uint32_t)imageBase;
 			if (isAddrInternal(ref))
 			{
 				// If this addr is known code, don't mark it as may-be-data, if it's already data, then nothing to do.
 				if (refdAddrs.find(ref) == end(refdAddrs))
 				{
 					//cout << "FOUND POSSIBLE DATA REF: 0x"<<hex<<(uint32_t)ref-(int)virtualImage<<dec<<endl;
-					refdAddrs.insert(pair<uint8_t*,DetectedType>(ref, DetectedType::possibleData));
+					refdAddrs.insert(pair<uint32_t,DetectedType>(ref, DetectedType::possibleData));
 				}
 			}
 		}
@@ -144,7 +143,7 @@ void Disassembler::readCode(uint8_t* addr)
 		if (off!=0)
 		{
 			// Check bounds
-			uint8_t* newIp = (uint8_t*)(ip+off);
+			uint32_t newIp = ip+off;
 			//cout <<hex<<"dataSize:0x"<<(int)dataSize<<", newIp:0x"<<(int)(newIp-data)<<dec<<"\n";
 			if (!isAddrInternal(newIp))
 			{
@@ -158,7 +157,7 @@ void Disassembler::readCode(uint8_t* addr)
 				cout << "Found branch to : 0x"<<hex<<(int)(newIp-virtualImage)<<dec<<"\n";
 				#endif
 				//cout << "ADDING CODE REF TO : 0x"<<hex<<(int)(newIp-virtualImage)<<dec<<"\n";
-				refdAddrs.insert(pair<uint8_t*,DetectedType>(newIp, DetectedType::code));
+				refdAddrs.insert(pair<uint32_t,DetectedType>(newIp, DetectedType::code));
 				readCode(newIp);
 			}
 		}
@@ -206,21 +205,21 @@ uint8_t getRM(uint8_t modrm)
 	return modrm&0b111;
 }
 
-const char* Disassembler::generateOpcodeErrorInfo(const char* error, uint8_t* addr)
+const char* Disassembler::generateOpcodeErrorInfo(const char* error, uint32_t addr)
 {
 	stringstream es;
-	es << error << " (opcode 0x"<<hex<<(int)*addr<<" at offset 0x" << (unsigned long)(addr - startOfEntrySection)<<")"<<dec;
+	es << error << " (opcode 0x"<<hex<<(uint16_t)*(virtualImage+addr)<<" at offset 0x" <<addr<<")"<<dec;
 	string* estr = new string(es.str());
 	return estr->c_str();
 }
 
-void Disassembler::addOpcodes(std::vector<uint8_t>& instruction, uint8_t* addr, unsigned count)
+void Disassembler::addOpcodes(std::vector<uint8_t>& instruction, uint32_t addr, unsigned count)
 {
 	for (unsigned i=0;i<count;++i)
-		instruction.push_back(*(addr+i));
+		instruction.push_back(*(virtualImage+addr+i));
 }
 
-const std::map<uint8_t* ,std::vector<uint8_t>>& Disassembler::getCode()
+const std::map<uint32_t ,std::vector<uint8_t>>& Disassembler::getCode()
 {
 	return code;
 }
@@ -306,7 +305,7 @@ bool Disassembler::isPrefix(uint8_t op)
 			|| op==0x36 || op==0x3E || op==0x26 || op==0x64 || op==0x65);
 }
 
-uint8_t* Disassembler::getBranchDest(uint8_t* addr, std::vector<uint8_t>& instruction)
+uint32_t Disassembler::getBranchDest(uint32_t addr, std::vector<uint8_t>& instruction)
 {
 	std::vector<uint8_t> ins = removePrefixes(instruction);
 	uint8_t insSize=ins.size();
@@ -346,11 +345,11 @@ uint8_t* Disassembler::getBranchDest(uint8_t* addr, std::vector<uint8_t>& instru
 		uint8_t op2=ins[1];
 		if (getMod(op2)==0 && getRM(op2)==5) // Absolute address
 		{
-			return virtualImage + ((uint32_t)ins[2] + ((uint32_t)(ins[3])<<8)
+			return ((uint32_t)ins[2] + ((uint32_t)(ins[3])<<8)
 					+ (((uint32_t)ins[4])<<16) + (((uint32_t)ins[5])<<24)) - (uint32_t)imageBase;
 		}
 		else
-			return (uint8_t*)-1;
+			return (uint32_t)-1;
 	}
 	// Mp
 	else if (op==0xFF&&(getReg(ins[1])==3 || getReg(ins[1])==5))
@@ -364,20 +363,20 @@ uint8_t* Disassembler::getBranchDest(uint8_t* addr, std::vector<uint8_t>& instru
 	return 0;
 }
 
-void Disassembler::editInstruction(uint8_t* addr,std::vector<uint8_t> ins)
+void Disassembler::editInstruction(uint32_t addr,std::vector<uint8_t> ins)
 {
 	code[addr]=ins;
 }
 
-bool Disassembler::isAddrInternal(uint8_t* addr)
+bool Disassembler::isAddrInternal(uint32_t addr)
 {
-	for (pair<uint8_t*,uint8_t*>& p : codeBounds)
-		if (addr>=p.first&&addr<p.second)
+	for (pair<uint32_t,uint32_t>& p : codeBounds)
+		if (addr>=p.first && addr<p.second)
 			return true;
 	return false;
 }
 
-vector<Branch> Disassembler::getXRefs(uint8_t* addr)
+vector<Branch> Disassembler::getXRefs(uint32_t addr)
 {
 	vector<Branch> refs;
 	for (Branch& b : branches)
@@ -388,13 +387,13 @@ vector<Branch> Disassembler::getXRefs(uint8_t* addr)
 	return refs;
 }
 
-bool Disassembler::hasXRefs(uint8_t* addr)
+bool Disassembler::hasXRefs(uint32_t addr)
 {
 	// The keys of refs are the destinations, the values are the sources
 	return refs.find(addr) != end(refs);
 }
 
-Block* Disassembler::getBlockOfAddr(uint8_t* addr)
+Block* Disassembler::getBlockOfAddr(uint32_t addr)
 {
 	Block* result=nullptr;
 
@@ -409,7 +408,7 @@ Block* Disassembler::getBlockOfAddr(uint8_t* addr)
 	return result;
 }
 
-bool Disassembler::isAddrInBlock(const uint8_t* const addr)
+bool Disassembler::isAddrInBlock(const uint32_t addr)
 {
 	for (auto s = blocks.rbegin(), e=blocks.rend(); s!=e; ++s)
 		if (addr<s->endAddr && addr>=s->startAddr)
@@ -426,9 +425,9 @@ bool Disassembler::isAddrInBlock(const uint8_t* const addr)
 
 void Disassembler::updateVirtualImageFromInstructions()
 {
-	for (pair<uint8_t* ,std::vector<uint8_t>> ins : code)
+	for (pair<uint32_t ,std::vector<uint8_t>> ins : code)
 	{
 		for (uint8_t i=0; i<ins.second.size(); ++i)
-			*(ins.first+i)=ins.second[i];
+			*(virtualImage+ins.first+i)=ins.second[i];
 	}
 }
