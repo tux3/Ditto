@@ -39,19 +39,30 @@ unsigned short Transform::encryptSection(std::string sectionName)
 	uint32_t dataStart = bounds.first+imageBase, dataEnd = bounds.second+imageBase;
 
 	// Create section
-	sectionName.insert(begin(sectionName),'D');
-	sectionName.resize(8);
-	uint32_t newSection = parser.addSection(sectionName,35,IMAGE_SCN_CNT_CODE|IMAGE_SCN_MEM_READ_EXECUTE);
+	/// TODO: Only create a new section if the last section isn't code!
+	uint32_t decryptorPos;
+	if (parser.isLastSectionRECode())
+	{
+		cout << "Last section is RE code\n";
+		decryptorPos = parser.getLastSectionEnd();
+	}
+	else
+	{
+		sectionName.insert(begin(sectionName),'D');
+		sectionName.resize(8);
+		decryptorPos = parser.addSection(sectionName,0,IMAGE_SCN_CNT_CODE|IMAGE_SCN_MEM_READ_EXECUTE);
+	}
 	uint8_t*& virtualImage = parser.getVirtualImage();
+
 
 	// Generate decryptor
 	size_t decryptCodeSize;
 	uint8_t* decryptCode;
 	if (::rand()%2) // Use the decryptor with obfuscated ret to the old ep
 	{
-		uint32_t absOldEP = imageBase + oldEP;
-		uint32_t absFirstRet = imageBase + newSection+18;
 		decryptCodeSize = 48;
+		uint32_t absOldEP = imageBase + oldEP;
+		uint32_t absFirstRet = imageBase + decryptorPos+18;
 		uint16_t random = ::rand()&0xFFFF;
 		*(uint16_t*)(codeObf+1) = absFirstRet>>16;
 		*(uint16_t*)(codeObf+3) = absOldEP>>16;
@@ -70,20 +81,46 @@ unsigned short Transform::encryptSection(std::string sectionName)
 		*(uint32_t*)(codeNormal+2) = dataStart;
 		*(uint32_t*)(codeNormal+9) = key;
 		*(uint32_t*)(codeNormal+20) = dataEnd-3;
-		*(uint32_t*)(codeNormal+29) = 0xFFFFFFFF - (newSection+32-oldEP);
+		*(uint32_t*)(codeNormal+29) = 0xFFFFFFFF - (decryptorPos+32-oldEP);
 		decryptCode = codeNormal;
 		decryptorUsed=2;
 	}
+	decryptCodeSize*=2;
+
 	// Encrypt section
+	parser.expandLastSectionBy(decryptCodeSize);
 	for (uint32_t* i=(uint32_t*)(virtualImage+bounds.first); (uint8_t*)i<(virtualImage+bounds.second-3); ++i)
 		*i ^= key;
 
 	// Inject decryptor in new section
 	for (uint8_t i=0; i<decryptCodeSize; ++i)
-		*(virtualImage+newSection+i)=decryptCode[i];
+		*(virtualImage+decryptorPos+i)=decryptCode[i];
 
 	// Change entry point
-	parser.setEntryPoint(newSection);
+	parser.setEntryPoint(decryptorPos);
+
+	/// TODO: If the section is not writable, we need to add a runtime permission change before the shellcode
+
+	/// TODO: Overload substitute to take a reference to any vector of instructions and modify it.
+
+	/// TODO: We'll want to make an USG thingy for the decryptor.
+	/// We could generate random parts of the decryptor and link them together. For example have 10 different ways
+	/// to jump back to the old EP, 5 different crypting algo (XOR, rolling XOR, XOR+ADD, ...), X ways to check
+	/// Add a rand()%2 chanche that the decryptor runs from end to start instead of start to end
+	/// if we reached the end of the data, X ways to load the data start ptr, etc
+	/// Then select these parts at random and link them together.
+	/// Each part should be able to link around/with the previous one.
+	/// Then give the vector of instructions to substitude, advSubstiture and substitureRegisters, and write result.
+	/// I need to ARMOR that fucking decryptor to death. Every single byte must be random and the positions too.
+	/// We must be able to use different key sizes too, and replace the JB by something else like CMP and JNZ.
+	/// We need the really everything to be different and undetectable without false positives on everything.
+
+	/// We should scan the end of the section before generating the decryptor. Often the end is padded with 0s,
+	/// we should skip the last contigous block of 0s and only crypt until this block.
+
+	/// We NEED to parse the damn relocations and imports.
+
+	/// TODO: BUG: Dammit the crypter on .data causes everything serious to fail ! Including blender, NPP, Bitcoin, etc.
 
 	return decryptorUsed;
 }

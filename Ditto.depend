@@ -1,5 +1,5 @@
 # depslib dependency file v1.0
-1394483720 source:c:\users\tux\documents\dev\projects\ditto\main.cpp
+1394649765 source:c:\users\tux\documents\dev\projects\ditto\main.cpp
 	<iostream>
 	<fstream>
 	<string>
@@ -17,18 +17,18 @@
 	"objectparser.h"
 	<iostream>
 
-1394493933 c:\users\tux\documents\dev\projects\ditto\objectparser.h
+1394575980 c:\users\tux\documents\dev\projects\ditto\objectparser.h
 	<stddef.h>
 	<vector>
 	<string>
 
-1394494365 source:c:\users\tux\documents\dev\projects\ditto\peparser.cpp
+1394576838 source:c:\users\tux\documents\dev\projects\ditto\peparser.cpp
 	"peparser.h"
 	<iostream>
 	<algorithm>
 	<mem.h>
 
-1394493981 c:\users\tux\documents\dev\projects\ditto\peparser.h
+1394576013 c:\users\tux\documents\dev\projects\ditto\peparser.h
 	"objectparser.h"
 	<stdint.h>
 
@@ -41,7 +41,7 @@
 	<stdint.h>
 	<stddef.h>
 
-1394473693 source:c:\users\tux\documents\dev\projects\ditto\disassembler.cpp
+1395001096 source:c:\users\tux\documents\dev\projects\ditto\disassembler.cpp
 	"disassembler.h"
 	<sstream>
 	<iostream>
@@ -54,20 +54,20 @@
 	<stdint.h>
 	<stddef.h>
 
-1394473839 source:c:\users\tux\documents\dev\projects\ditto\disassemblerinstructions.cpp
+1394723521 source:c:\users\tux\documents\dev\projects\ditto\disassemblerinstructions.cpp
 	"disassembler.h"
 
-1394495921 source:c:\users\tux\documents\dev\projects\ditto\transform.cpp
+1394723650 source:c:\users\tux\documents\dev\projects\ditto\transform.cpp
 	"transform.h"
 	"peparser.h"
 	<iostream>
 	<cstdlib>
 	<ctime>
 
-1394496013 c:\users\tux\documents\dev\projects\ditto\transform.h
+1394583527 c:\users\tux\documents\dev\projects\ditto\transform.h
 	"disassembler.h"
 
-1394474095 source:c:\users\tux\documents\dev\projects\ditto\transinplacesub.cpp
+1395001067 source:c:\users\tux\documents\dev\projects\ditto\transinplacesub.cpp
 	"transform.h"
 	<iostream>
 	<cstdlib>
@@ -76,5 +76,10 @@
 1394473864 source:c:\users\tux\documents\dev\projects\ditto\disassembleranalyze.cpp
 	"disassembler.h"
 	<sstream>
+	<iostream>
+
+1394723728 source:c:\users\tux\documents\dev\projects\ditto\transshuffle.cpp
+	"transform.h"
+	<list>
 	<iostream>
 

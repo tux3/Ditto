@@ -7,16 +7,18 @@ using namespace std;
 
 unsigned Transform::substitute()
 {
+	// We need to make a copy, since we'd invalidate the iterators of the original in the middle of the loop.
 	const std::map<uint32_t ,std::vector<uint8_t>> code = disasm.getCode();
-	unsigned nSubs=0; // Number of substitutions made
+	unsigned nSubs=0; // Number of instructions substituted, obviously
 
     for (std::pair<uint32_t ,std::vector<uint8_t>> ins : code)
 	{
 		if (ins.second.empty())
 			continue;
-		if (!getRandBool())
+		if (!getRandBool()) // true/false ratio corresponds to the -r XX parameter.
 			continue;
 		uint8_t op=ins.second[0];
+		opType type = disasm.getOperandsType(ins.second);
 
 		// 0x80/0x82 Aliases
 		if (op==0x80)
@@ -53,56 +55,28 @@ unsigned Transform::substitute()
 			}
 		}
 
-		// Eb Gb => Gb Eb substitutions
-		if (Disassembler::getOperandsType(ins.second)==opType::EbGb && op!=0x84)
+		// Eb Gb <=> Gb Eb substitutions
+		if ((type==opType::EbGb && op!=0x84) || (type==opType::GbEb && op!=0x86))
 		{
 			uint8_t op2=ins.second[1];
 			if (getMod(op2)==3)
 			{
 				uint8_t reg = getReg(op2), rm=getRM(op2);
-				ins.second[0]+=2; // Switch to Gb Eb
+				ins.second[0]+= type==opType::EbGb ? 2 : -2; // Invert order
 				ins.second[1]=0xC0+(rm<<3)+reg; // Swap registers
 				disasm.editInstruction(ins.first, ins.second);
 				nSubs++;
 				continue;
 			}
 		}
-		// Gb Eb => Eb Gb substitutions
-		else if (Disassembler::getOperandsType(ins.second)==opType::GbEb && op!=0x86)
+		// Ev Gv <=> Gv Ev substitutions
+		else if ((type==opType::EvGv&&op!=0x85) || (type==opType::GvEv&&op!=0x87))
 		{
 			uint8_t op2=ins.second[1];
 			if (getMod(op2)==3)
 			{
 				uint8_t reg = getReg(op2), rm=getRM(op2);
-				ins.second[0]-=2; // Switch to Eb Gb
-				ins.second[1]=0xC0+(rm<<3)+reg; // Swap registers
-				disasm.editInstruction(ins.first, ins.second);
-				nSubs++;
-				continue;
-			}
-		}
-		// Ev Gv => Gv Ev substitutions
-		else if (Disassembler::getOperandsType(ins.second)==opType::EvGv && op!=0x85)
-		{
-			uint8_t op2=ins.second[1];
-			if (getMod(op2)==3)
-			{
-				uint8_t reg = getReg(op2), rm=getRM(op2);
-				ins.second[0]+=2; // Switch to Gv Ev
-				ins.second[1]=0xC0+(rm<<3)+reg; // Swap registers
-				disasm.editInstruction(ins.first, ins.second);
-				nSubs++;
-				continue;
-			}
-		}
-		// Gv Ev => Ev Gv substitutions
-		else if (Disassembler::getOperandsType(ins.second)==opType::GvEv && op!=0x87)
-		{
-			uint8_t op2=ins.second[1];
-			if (getMod(op2)==3)
-			{
-				uint8_t reg = getReg(op2), rm=getRM(op2);
-				ins.second[0]-=2; // Switch to Ev Gv
+				ins.second[0]+= type==opType::EvGv ? 2 : -2; // Invert order
 				ins.second[1]=0xC0+(rm<<3)+reg; // Swap registers
 				disasm.editInstruction(ins.first, ins.second);
 				nSubs++;
@@ -136,7 +110,7 @@ unsigned Transform::substitute()
 			{
 				uint8_t op3=ins.second[2];
 				// If the SIB is correct, we can swap Base and Index
-                if (false && getMod(op3)==0 && getRM(op3)!=4 && getReg(op3)!=4
+                if (getMod(op3)==0 && getRM(op3)!=4 && getReg(op3)!=4
 					&& ((getMod(op2)==0&&getReg(op3)!=5&&getRM(op3)!=5)||getMod(op2)!=0))
 				{
 					uint8_t reg = getReg(op3), rm=getRM(op3);
@@ -183,7 +157,13 @@ unsigned Transform::substitute()
 					}
 				}
 			}
-			/// TODO: If an instruction uses a displacement of 0, we can replace it by no-ops or superflous prefixes
+			/** TODO
+			If an instruction uses a displacement of 0, we can replace it by no-ops
+			Replace ADD +X by SUB -X, and the countrary
+			Replace XOR REG,REG and equivalents by a random equivalent
+			Replace TEST REG,REG by OR REG,REG
+			Replace MOV REG1, REG2 by PUSH REG2; POP REG1.
+			**/
 		}
 	}
 	return nSubs;

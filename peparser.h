@@ -118,10 +118,13 @@ class PEParser : public ObjectParser
 		virtual std::vector<std::pair<uint32_t,uint32_t>> getCodeSectionsVirtualBounds();
 		virtual uint32_t getImageBase();
 		virtual uint32_t getCodeBase();
+		virtual std::pair<uint8_t*,size_t> getData();
 		virtual void updateDataFromVirtualImage();
 		virtual uint32_t addSection(std::string name, size_t size, uint32_t flags);
+		virtual void expandLastSectionBy(size_t size);
 		virtual void setEntryPoint(uint32_t value);
-		virtual std::pair<uint8_t*,size_t> getData();
+		virtual bool isLastSectionRECode();
+		virtual uint32_t getLastSectionEnd();
 	protected:
 	private:
 		COFFHeader* coffHeader;

@@ -27,8 +27,14 @@ class ObjectParser
 		virtual uint32_t getImageBase()=0;
 		virtual uint32_t getCodeBase()=0;
 		virtual void updateDataFromVirtualImage()=0;
-		/// Returns an offset to the start of the new section in the virtual image
+		/// Returns an offset to the start of the new section in the virtual image. Will realloc.
 		virtual uint32_t addSection(std::string name, size_t size, uint32_t flags)=0;
+		/// Adds size bytes to the virtual and raw sizes of the last sections. Will realloc.
+		virtual void expandLastSectionBy(size_t size)=0;
+		/// True if the last section is Read/Execute and contains code
+		virtual bool isLastSectionRECode()=0;
+		/// Returns an offset to the end (last byte+1) of the last section
+		virtual uint32_t getLastSectionEnd()=0;
 		/// Sets the entry point (in the virtual image) to the given value. No checking.
 		virtual void setEntryPoint(uint32_t value)=0;
 		virtual std::pair<uint8_t*,size_t> getData()=0;

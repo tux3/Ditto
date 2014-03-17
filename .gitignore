@@ -5,6 +5,8 @@
 *.dll
 Malware/
 Z0mbie/
+doxygen/
+Docs/
 
 #################
 ## Eclipse

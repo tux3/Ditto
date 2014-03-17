@@ -36,6 +36,9 @@ After making isAddrInBlock use a reverse iterator, for npp : 1.745, 1.742, 1.746
 New time for Bitcoin : 39.543s (14x faster than the original)
 
 ###############
+When we only follow the flow and try to stop at referenced data, for NPP we find 70964 instructions.
+
+###############
 We only take into account changes to the size of the instruction
 The adress-size override (67) can actually work on displacements it seems (with opcode 01 and a ModRM of B0 for example)
 But since it's so useseless, we're just not going to support it.
@@ -212,3 +215,29 @@ DB 45 E4
 01 means 1B displacement
 000 is /0
 101 means EBP
+
+#################
+To stay FUD, every single byte of the decryptor must be random. We must avoid the decryptor if we can.
+To really fuck with an AV, we could merge the code and data sections together. This technically wouldn't need a relocation.
+But if we do this, it means no crypting or self-modifications.
+Obviously, this is a generic metamorphic engine, but the files we try to encrypt can be more or less metamorphism-friendly.
+A file with relocations provided and all sections merged will be terribly efficient and stay FUD.
+A file with a data section, plus data mixed in the text, and separate sections will be hard to morph, we'll even need a crypter.
+
+Basically we need to break Exact Identification. We must transmorm static bytes into variables bytes. Everything should be able to change.
+
+#################
+Possibly interesting exports in ntdll.dll
+RtlCreateUserProcess
+RtlCreateUserThread
+RtlCloneUserProcess
+Possibly interesting exports in kernel32.dll
+VirtualProtect
+IsDebuggerPresent
+SetProcessDEPPolicy
+SwitchToThread
+SetThreadExecutionState
+SwitchToFiber
+CreateFiberEx
+
+Perhaps we can use fiber magic as an anti emulator.

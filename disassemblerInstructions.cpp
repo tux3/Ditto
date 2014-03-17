@@ -77,7 +77,7 @@ uint8_t Disassembler::readInstruction(uint32_t addr)
 		instructionSize=2;
 	else if (op==0xA0 || op==0xA2) // XXX Ob
 		instructionSize=5;
-	else if (op==0x80 || op==0xC0 || op==0xC6) // XXX Eb Ib
+	else if (op==0x80 || op==0x82 || op==0xC0 || op==0xC6) // XXX Eb Ib
 	{
 		if (getMod(op2)==0 && getRM(op2)!=5 && getRM(op2)!=4) // No displacement, no SIB
 			instructionSize=3;
@@ -187,8 +187,8 @@ uint8_t Disassembler::readInstruction(uint32_t addr)
 		else
 			throw generateOpcodeErrorInfo("Opcode ModRM not implemented",addr);
 	}
-	else if (op==0x00 || op==0x02 || op==0x08 || op==0x0A || op==0x10 || op==0x18 || op==0x20 || op==0x22
-			|| op==0x28 || op==0x2A || op==0x30 || op==0x32 || op==0x38 || op==0x3A || op==0x84
+	else if (op==0x00 || op==0x02 || op==0x08 || op==0x0A || op==0x10 || op==0x18 || op==0x1A || op==0x20 || op==0x22
+			|| op==0x28 || op==0x2A || op==0x30 || op==0x32 || op==0x38 || op==0x3A || op==0x84 || op==0xD2
 			|| op==0x86 || op==0x88 || op==0x8A || op==0x8C) // XXX Eb Gb or XXX Gb Eb
 	{
 		if (getMod(op2)==0 && getRM(op2)!=5 && getRM(op2)!=4) // No displacement, no SIB
@@ -356,7 +356,17 @@ uint8_t Disassembler::readInstruction(uint32_t addr)
 	}
 	else if (op==0xD8) // D8 group (x87fpu instructions)
 	{
-		if (getMod(op2)==0 && getRM(op2)==5) // Absolute address
+		if (getMod(op2)==0 && getRM(op2)!=5 && getRM(op2)!=4) // No displacement, no SIB
+			instructionSize=2;
+		else if (getMod(op2)==0 && getRM(op2)==4) // // No displacement, SIB
+		{
+			uint8_t op3=*(virtualImage+addr+2);
+			if (getRM(op3)==5) // Full displacement
+				instructionSize=7;
+			else // No displacement
+				instructionSize=3;
+		}
+		else if (getMod(op2)==0 && getRM(op2)==5) // Absolute address
 			instructionSize=6;
 		else if (getMod(op2)==1 && getRM(op2)!=4) // 1B displacement, no SIB
 			instructionSize=3;
@@ -378,10 +388,18 @@ uint8_t Disassembler::readInstruction(uint32_t addr)
 	{
 		if ((op2>=0xE0 && op2<=0xE5) || (op2>=0xE8 && op2<=0xEE) || op2==0xC9 || op2==0xD0)
 			instructionSize=2;
-		else if (getReg(op2)==0 ) // /0
+		else if (getReg(op2)==0 || getReg(op2)==2 || getReg(op2)==6) // /0, /2 or /6
 		{
 			if (getMod(op2)==0 && getRM(op2)!=5 && getRM(op2)!=4) // No displacement, no SIB
 				instructionSize=2;
+			else if (getMod(op2)==0 && getRM(op2)==4) // No displacement, SIB
+			{
+				uint8_t op3=*(virtualImage+addr+2);
+				if (getRM(op3)!=5) // No displacement
+					instructionSize=3;
+				else // Full displacement
+					instructionSize=7;
+			}
 			else if (getMod(op2)==0 && getRM(op2)==5) // Absolute address
 				instructionSize=6;
 			else if (getMod(op2)==1 && getRM(op2)!=4) // 1B displacement, no SIB
@@ -390,14 +408,16 @@ uint8_t Disassembler::readInstruction(uint32_t addr)
 				instructionSize=4;
 			else if (getMod(op2)==2 && getRM(op2)!=4) // Full displacement, no SIB
 				instructionSize=6;
+			else if (getMod(op2)==2 && getRM(op2)==4) // Full displacement, SIB
+				instructionSize=7;
 			else if (getMod(op2)==3) // /0 direct register
 				instructionSize=2;
 		}
-		else if ((getReg(op2)==5)
-				&& getMod(op2)==0 && getRM(op2)==5) // /3,5 or /7, Absolute address
+		else if ((getReg(op2)==3||getReg(op2)==5)
+				&& getMod(op2)==0 && getRM(op2)==5) // /3,/5, Absolute address
 				instructionSize=6;
 		else if ((getReg(op2)==3||getReg(op2)==5||getReg(op2)==7)
-				&& getMod(op2)==0 && getRM(op2)==4) // /3,5 or /7, No displacement, SIB
+				&& getMod(op2)==0 && getRM(op2)==4) // /3,/5 or /7, No displacement, SIB
 		{
             uint8_t op3=*(virtualImage+addr+2);
             if (getRM(op3)!=5) // No displacement
@@ -431,6 +451,22 @@ uint8_t Disassembler::readInstruction(uint32_t addr)
 	{
 		if (getMod(op2)==3) // Direct register
 			instructionSize=2;
+		else if (getMod(op2)==0 && getRM(op2)!=4 && getRM(op2)!=5) // No displacement, no SIB
+			instructionSize=2;
+		else if (getMod(op2)==0 && getRM(op2)==4) // No displacement, SIB
+		{
+			uint8_t op3=*(virtualImage+addr+2);
+			if (getRM(op3)!=5) // No displacement
+				instructionSize=3;
+		}
+		else if (getMod(op2)==1 && getRM(op2)!=4) // 1B displacement, no SIB
+			instructionSize=3;
+		else if (getMod(op2)==1 && getRM(op2)==4) // 1B displacement, SIB
+			instructionSize=4;
+		else if (getMod(op2)==2 && getRM(op2)!=4) // Full displacement, no SIB
+			instructionSize=6;
+		else if (getMod(op2)==2 && getRM(op2)==4) // Full displacement, SIB
+			instructionSize=7;
 	}
 	else if (op==0xDB) // DB group (x87fpu instructions)
 	{
@@ -471,6 +507,8 @@ uint8_t Disassembler::readInstruction(uint32_t addr)
 			uint8_t op3=*(virtualImage+addr+2);
 			if (getRM(op3)==5) // Full displacement
 				instructionSize=7;
+			else // No displacement
+				instructionSize=3;
 		}
 		else if (getMod(op2)==0 && getRM(op2)==5) // Absolute address
 			instructionSize=6;
@@ -494,7 +532,8 @@ uint8_t Disassembler::readInstruction(uint32_t addr)
 	{
 		if (getMod(op2)==3) // Direct register
 			instructionSize=2;
-		else if (getReg(op2)==0 || getReg(op2)==3) // /0 or /3
+		else if (getReg(op2)==0 || getReg(op2)==3 || getReg(op2)==4
+				|| getReg(op2)==6 || getReg(op2)==7) // /0,/3,/4,/6 or /7
 		{
 			if (getMod(op2)==0 && getRM(op2)!=4 && getRM(op2)!=5) // no displacement, no SIB
 				instructionSize=2;
@@ -646,6 +685,8 @@ uint8_t Disassembler::readInstruction(uint32_t addr)
 		{
 			if (getMod(op2)==0 && getRM(op2)!=4 && getRM(op2)!=5) // No displacement, no SIB
 				instructionSize=6;
+			else if (getMod(op2)==0 && getRM(op2)==5) // Absolute address
+				instructionSize=10;
 			else if (getMod(op2)==1 && getRM(op2)!=4) // 1B displacement, no SIB
 				instructionSize=7;
 			else if (getMod(op2)==1 && getRM(op2)==4) // 1B displacement, SIB
@@ -657,7 +698,7 @@ uint8_t Disassembler::readInstruction(uint32_t addr)
 			else if (getMod(op2)==3) // Direct register
 				instructionSize=6;
 		}
-		else // /2, /3, /4, /5 or /6 (Ev)
+		else // /2, /3, /4, /5 /6, or /7 (Ev)
 		{
 			if (getMod(op2)==0 && getRM(op2)==4) // No displacement, SIB
 			{
@@ -667,6 +708,8 @@ uint8_t Disassembler::readInstruction(uint32_t addr)
 				else // No displacement
 					instructionSize=3;
 			}
+			else if (getMod(op2)==0 && getRM(op2)!=4 && getRM(op2)!=5) // No displacement, no SIB
+				instructionSize=2;
 			else if (getMod(op2)==1 && getRM(op2)!=4) // 1B displacement, no SIB
 				instructionSize=3;
 			else if (getMod(op2)==1 && getRM(op2)==4) // 1B displacement, SIB
@@ -746,7 +789,7 @@ uint8_t Disassembler::readInstruction(uint32_t addr)
 		}
 		else if (op2==0x77 || op2==0xA2 || (op2>=0xC8&&op2<=0xCF)) // CPUID or XXX Zv or control
 			instructionSize=2;
-		else if (op2==0xB6 || op2==0xBE || (op2>=0x90&&op2<=0x9F)) // XXX Gv Eb or XXX Eb
+		else if (op2==0xB6 || (op2==0xAE && getReg(op3)==3) || op2==0xBE || (op2>=0x90&&op2<=0x9F)) // XXX Gv Eb or XXX Eb or Md
 		{
 			if (getMod(op3)==0 && getRM(op3)!=4 && getRM(op3)!=5) // No displacement, no SIB
 				instructionSize=3;
@@ -801,7 +844,10 @@ uint8_t Disassembler::readInstruction(uint32_t addr)
 		else if ((op2>=0x40 && op2<=0x4F) || (op2==0x3A&&op3==0x44) || op2==0x6E || op2==0x7E || op2==0xA5 || op2==0xAB
 				|| op2==0xAD || op2==0xDB || op2==0xAF || op2==0xB1 || op2==0xB3 || op2==0xBB || op2==0xBC || op2==0xBD
 				|| op2==0x6F || op2==0x7F || op2==0xC1 || op2==0xD4 || op2==0xEF || op2==0x66 || op2==0xFE || op2==0x11
-				|| op2==0xF4 || op2==0x10 || op2==0xA3) // Gv Ev or Ev Gv or Pq Ed or Vdq Ed or Pq Qq or Vdq Wdq
+				|| op2==0xF4 || (op2>=0x10 && op2<=0x17) || (op2>=0x51 && op2<=0x5F) || op2==0x28 || op2==0xD7
+				|| op2==0x2A || op2==0x2D || op2==0x76 || op2==0xFB || op2==0xE6 || op2==0xF3 || op2==0xFA
+				|| op2==0xEE || op2==0xDF
+				|| op2==0xA3 || op2==0x2C) // Gv Ev or Ev Gv or Pq Ed or Vdq Ed or Pq Qq or Vdq Wdq or Gd Wsd or Vq Mq
 		{
 			if (getMod(op3)==0 && getRM(op3)==5) // Absolute address
 				instructionSize=7;
@@ -828,7 +874,7 @@ uint8_t Disassembler::readInstruction(uint32_t addr)
 			else
 				throw generateOpcodeErrorInfo("Opcode ModRM not implemented",addr);
 		}
-		else if (op2==0x73 || op2==0xBA || op2==0xA4 || op2==0xC6
+		else if (op2==0x70 || op2==0x73 || op2==0xBA || op2==0xA4 || op2==0xC2 || op2==0xC4 || op2==0xC5 || op2==0xC6
 				|| op2==0xAC) // Ev Ib or Ev Gv Ib or Nq Ib or Udq Ib or Vps Wps Ib
 		{
 			if (getMod(op3)==0 && getRM(op3)!=4 && getRM(op3)!=5) // No displacement, no SIB

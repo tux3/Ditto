@@ -30,9 +30,9 @@ int main(int argc, char* argv[])
 	// Parse arguments
 	string argPath, argOut, argRandStr, argEncryptSectionName;
 	int argRand=65;
-	bool argSubstitute=false, argForce=false, argForceCode=false;
+	bool argSubstitute=false, argShuffle=false, argForce=false, argForceCode=false;
 	char c;
-	while ((c = getopt (argc, argv, "shfo:r:e:")) != -1)
+	while ((c = getopt (argc, argv, "sShfo:r:e:")) != -1)
          switch (c)
            {
             case 'h':
@@ -41,6 +41,7 @@ int main(int argc, char* argv[])
 -r n\tProbability, between 1 and 100, of each operations of the transforms. 65 by default.\n\
 -h  \tShow this help\n\
 -s  \tIn-place subsitution:Replace instructions with equivalent instructions of the same size\n\
+-S  \tShuffle small blocks of instructions when their order isn't important.\n\
 -e s\tEncrypts the section s, the entry point will be moved to a polymorphic decryptor\n\
 -f  \tForcefully continue, at the risk of generating an incorrect result.\n\
 -F  \tForce the disassembler to treat more things as code, and try to read it.\n";
@@ -48,6 +49,9 @@ int main(int argc, char* argv[])
             break;
 			case 's':
             argSubstitute=true;
+            break;
+            case 'S':
+            argShuffle=true;
             break;
             case 'o':
             argOut = optarg;
@@ -175,12 +179,15 @@ int main(int argc, char* argv[])
 	====> There's also the problem of being aligned with the data. If the data is referenced at 0x2 and we start
 	====> reading at 0x1, we'll never land exactly on the start of the data reference.
 
-	=> Try to grep for 0x558BEC (push ebp, mov ebp, esp)
+	=> Try to grep for 0x558BEC ou 0x5589E5 (push ebp, mov ebp, esp)
 	=> See in olly if there are no false positives
 	=> We hopefully shouldn't find too many false positives, since most of .text is supposed to be code, not data.
 	=> Anyway, this should be an option not by default since it's dangerous.
 	==> Grep with olly first to see what the results are.
 	===> Maybe see if we can find a cleanup, or if there is a way to search for the cleanup.
+	=> Read the imports table, and grep for calls to imports
+
+	=> Option to randomize/anonymize the metadata. 0 the checksum, fill the VERSIONINFO, add noise to the icon, change timestamp, etc
 	**/
 	cout << "Disassembling...";
 	Disassembler* disasm;
@@ -218,6 +225,19 @@ int main(int argc, char* argv[])
 			exitWithError(string("FAIL (")+e+")\nAborting.\n");
 		}
 		cout << "OK ("<<nOps<<" instructions)\n";
+	}
+
+	if (argShuffle)
+	{
+		cout << "Shuffle...";
+		int nOps;
+		try {
+			nOps=trans->shuffle();
+		}
+		catch (const char* e) {
+			exitWithError(string("FAIL (")+e+")\nAborting.\n");
+		}
+		cout << "OK ("<<nOps<<" shuffles)\n";
 	}
 
 	if (!argEncryptSectionName.empty())

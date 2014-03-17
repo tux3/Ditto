@@ -10,6 +10,9 @@ class Transform
 		/// Substitutes instructions with equivalent instructions of the same size.
 		/// @return The number of substitutions done
 		unsigned substitute();
+		/// Substitutes small sets of instructions with equivalent instructions of the same size.
+		/// @return The number of substitutions done
+		unsigned shuffle();
 		/// Encrypts a section and move the entry point to a generated polymorphic decryptor.
 		/// @return Id of the decryptor used, or 0 if a generic decryptor was used.
 		unsigned short encryptSection(std::string sectionName);
@@ -30,7 +33,7 @@ Ideas for transforms
 - In-place subsitution
 Replace instructions with equivalent instructions of the same size
 - In-place advanced substitution
-Replace small (2-4) sets of instructions with an equivalent set of instructions of the same size.
+Replace small (2-4) sets of instructions with an equivalent set of the same size.(hard to find something to do)
 - Shrink substition
 Tries to find sets of instructions that can be replaced by a smaller equivalent.
 - Shuffle substitution

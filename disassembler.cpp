@@ -54,7 +54,7 @@ void Disassembler::readCode(uint32_t addr)
 
 		vector<uint8_t> newIns = code[ip];
 		#if (DEBUG_OUTPUT)
-		cout << "New instruction at offset 0x"<<hex<<ip-virtualImage<<" : ";
+		cout << "New instruction at offset 0x"<<hex<<ip<<" : ";
 		for(unsigned i=0; i<newIns.size();++i)
 			cout<<(int)newIns[i]<<" ";
 		cout<<dec<<"\n";
@@ -148,13 +148,13 @@ void Disassembler::readCode(uint32_t addr)
 			if (!isAddrInternal(newIp))
 			{
 				#if (DEBUG_OUTPUT)
-				cout << "Found branch to external module (0x"<<hex<<(int)(newIp-virtualImage)<<dec<<")\n";;
+				cout << "Found branch to external module (0x"<<hex<<(int)(newIp)<<dec<<")\n";;
 				#endif
 			}
 			else
 			{
 				#if (DEBUG_OUTPUT)
-				cout << "Found branch to : 0x"<<hex<<(int)(newIp-virtualImage)<<dec<<"\n";
+				cout << "Found branch to : 0x"<<hex<<(int)(newIp)<<dec<<"\n";
 				#endif
 				//cout << "ADDING CODE REF TO : 0x"<<hex<<(int)(newIp-virtualImage)<<dec<<"\n";
 				refdAddrs.insert(pair<uint32_t,DetectedType>(newIp, DetectedType::code));
@@ -209,6 +209,9 @@ const char* Disassembler::generateOpcodeErrorInfo(const char* error, uint32_t ad
 {
 	stringstream es;
 	es << error << " (opcode 0x"<<hex<<(uint16_t)*(virtualImage+addr)<<" at offset 0x" <<addr<<")"<<dec;
+	es << "\nBTW next opcode is 0x"<<hex<<(uint16_t)*(virtualImage+addr+1)<<dec;
+	es << "\nBTW next opcode is 0x"<<hex<<(uint16_t)*(virtualImage+addr+2)<<dec;
+	es << "\nBTW next opcode is 0x"<<hex<<(uint16_t)*(virtualImage+addr+3)<<dec;
 	string* estr = new string(es.str());
 	return estr->c_str();
 }
@@ -410,22 +413,17 @@ Block* Disassembler::getBlockOfAddr(uint32_t addr)
 
 bool Disassembler::isAddrInBlock(const uint32_t addr)
 {
+	// Profiling said we spent ~95% of the time in there during analysis.
+	// Reverse iterators turned out to be somewhat faster for the analysis we did
 	for (auto s = blocks.rbegin(), e=blocks.rend(); s!=e; ++s)
 		if (addr<s->endAddr && addr>=s->startAddr)
 			return true;
 	return false;
-	/*
-	/// TODO: Profiling says we spend ~95% of the time in there during analysis
-	for (const Block& b : blocks)
-		if (addr<b.endAddr && addr>=b.startAddr)
-			return true;
-	return false;
-	*/
 }
 
 void Disassembler::updateVirtualImageFromInstructions()
 {
-	for (pair<uint32_t ,std::vector<uint8_t>> ins : code)
+	for (const pair<uint32_t ,std::vector<uint8_t>>& ins : code)
 	{
 		for (uint8_t i=0; i<ins.second.size(); ++i)
 			*(virtualImage+ins.first+i)=ins.second[i];
