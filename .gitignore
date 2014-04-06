@@ -7,6 +7,7 @@ Malware/
 Z0mbie/
 doxygen/
 Docs/
+*.layout
 
 #################
 ## Eclipse
