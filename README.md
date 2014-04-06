@@ -27,8 +27,4 @@ Then the optional transforms will work on the higher-level representations of th
 Finally the virtual image and then the raw image are rebuilt from the instructions and metadata and the result is written to the output file.
 
 <h2>But why ?</h2>
-Self-modifying code is fascinating in its own way. I wrote this mostly to learn, to acquire experience, but also as a proof of concept.
-And open-source engines with those features are still somewhat rare, Z0mbie's work comes to mind, but it is perhaps not as maintanable and might not be trying to achieve the same goal.
-
-<h4>Where's the source code</h4>
-I'll probably publish it soon-ish, it is currently ~3000 lines of C++ and implements only the disassembler, basic analysis and simple transforms at the moment. It is also in serious need of refactoring and cleaning.
+I wrote this mostly to learn more, but self-modifying code and metamorphism are interesting concepts.
