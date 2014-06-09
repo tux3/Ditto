@@ -51,7 +51,9 @@
 			</Target>
 		</Build>
 		<Compiler>
+			<Add option="-Weffc++" />
 			<Add option="-std=c++11" />
+			<Add option="-Wextra" />
 			<Add option="-Wall" />
 		</Compiler>
 		<Unit filename="disassembler.cpp" />
@@ -59,8 +61,7 @@
 		<Unit filename="disassemblerAnalyze.cpp" />
 		<Unit filename="disassemblerInstructions.cpp" />
 		<Unit filename="main.cpp" />
-		<Unit filename="objectparser.cpp" />
-		<Unit filename="objectparser.h" />
+		<Unit filename="peformat.h" />
 		<Unit filename="peparser.cpp" />
 		<Unit filename="peparser.h" />
 		<Unit filename="relocation.h" />
