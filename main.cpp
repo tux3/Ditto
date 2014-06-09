@@ -30,21 +30,19 @@ int main(int argc, char* argv[])
 	// Parse arguments
 	string argPath, argOut, argRandStr, argEncryptSectionName;
 	int argRand=65;
-	bool argSubstitute=false, argShuffle=false, argForce=false, argForceCode=false;
+	bool argSubstitute=false, argShuffle=false;
 	char c;
-	while ((c = getopt (argc, argv, "sShfo:r:e:")) != -1)
+	while ((c = getopt (argc, argv, "sSho:r:e:")) != -1)
          switch (c)
            {
             case 'h':
-            cout << "Ditto, a generic metamorphic engine\nUsage : ditto [-hsfF] [-e s] [-r n] -o output input\n\n\
+            cout << "Ditto, a generic metamorphic engine\nUsage : ditto [-hs] [-e s] [-r n] -o output input\n\n\
 -o f\tOutput file\n\
 -r n\tProbability, between 1 and 100, of each operations of the transforms. 65 by default.\n\
 -h  \tShow this help\n\
--s  \tIn-place subsitution:Replace instructions with equivalent instructions of the same size\n\
+-s  \tIn-place substitution:Replace instructions with equivalent instructions of the same size\n\
 -S  \tShuffle small blocks of instructions when their order isn't important.\n\
--e s\tEncrypts the section s, the entry point will be moved to a polymorphic decryptor\n\
--f  \tForcefully continue, at the risk of generating an incorrect result.\n\
--F  \tForce the disassembler to treat more things as code, and try to read it.\n";
+-e s\tEncrypts the section s, the entry point will be moved to a polymorphic decryptor\n";
 			exit(0);
             break;
 			case 's':
@@ -62,29 +60,23 @@ int main(int argc, char* argv[])
             case 'e':
             argEncryptSectionName = optarg;
             break;
-            case 'f':
-            argForce = true;
-            break;
-            case 'F':
-            argForceCode = true;
-            break;
-           case '?':
-             if (optopt == 'o')
-               fprintf (stderr, "Option -o requires an argument.\n");
-			 else if (optopt == 'r')
-               fprintf (stderr, "Option -r requires a numerical argument.\n");
-			 else if (optopt == 'e')
-               fprintf (stderr, "Option -e requires the name of a section.\n");
-             else if (isprint (optopt))
-               fprintf (stderr, "Unknown option `-%c' or missing argument.\n", optopt);
-             else
-               fprintf (stderr,
-                        "Unknown option character `\\x%x'.\n",
-                        optopt);
-             return 1;
-           default:
-             abort ();
-           }
+            case '?':
+              if (optopt == 'o')
+                fprintf (stderr, "Option -o requires an argument.\n");
+			  else if (optopt == 'r')
+                fprintf (stderr, "Option -r requires a numerical argument.\n");
+			  else if (optopt == 'e')
+                fprintf (stderr, "Option -e requires the name of a section.\n");
+              else if (isprint (optopt))
+                fprintf (stderr, "Unknown option `-%c' or missing argument.\n", optopt);
+              else
+                fprintf (stderr,
+                         "Unknown option character `\\x%x'.\n",
+                         optopt);
+              return 1;
+            default:
+              abort();
+            }
 	if (optind < argc)
 		argPath = argv[optind];
 	else
@@ -124,13 +116,12 @@ int main(int argc, char* argv[])
 
 	// Detect file type
 	cout<<"Detecting file type :\n";
-	unique_ptr<ObjectParser> parser=nullptr;
+	PEParser* parser = nullptr;
 	try // PE
 	{
 		cout << "PE...";
-		unique_ptr<PEParser> peParser{new PEParser{data, dataSize}};
+		parser = new PEParser{data, dataSize};
 		cout << "OK"<<endl;
-		parser=move(peParser);
 	}
 	catch (const char* e)
 	{
@@ -138,6 +129,9 @@ int main(int argc, char* argv[])
 	}
 	if (parser==nullptr)
 		exitWithError("Error : Can't detect file type.\n");
+
+    // Read the relocations
+
 
 	// Disassemble the code sections
 	/** DONE;
@@ -147,6 +141,16 @@ int main(int argc, char* argv[])
 	Update isAddrInternal to check if the addr is within bounds of an executable section.
 	**/
 	/** TODO:
+	Okay, we really need to read the damn relocations. LordPE can list them for reference.
+	WinMD5 has relocations, tons of them.
+	Relocations could be pointing to data or code, but at first we should just assume it's data unless we can prove it's code.
+	We should run the relocation analysis before disassembling, so we know where not to go.
+	If in the code we land on a point that is targeted by a relocation, we return. This could be data.
+	Then after we're done doing the initial disassembly, we take a look at the relocs again.
+	If we find a valid function start pointed by a reloc, we can mark it as "unknown", else mark it as "might be data".
+	Now we look at all the unknown landing points and do a strict thorought analysis.
+    If we're not reasonably sure it's code, we mark as might be data.
+
 	We can search for signatures (such as push ebp/mov ebp,esp) and mark them for analysis.
 	If we find those in the .text section, they are unlikely to be data.
 	Do the dynamic analysis in another class and as a runtime option
@@ -192,7 +196,7 @@ int main(int argc, char* argv[])
 	cout << "Disassembling...";
 	Disassembler* disasm;
 	try {
-	disasm=new Disassembler(*parser, argForce, argForceCode);
+	disasm=new Disassembler(*parser);
 	}
 	catch (const char* e) {
 		exitWithError(string("FAIL (")+e+")\nAborting.\n");

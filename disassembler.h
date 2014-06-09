@@ -1,7 +1,7 @@
 #ifndef DECOMPILER_H
 #define DECOMPILER_H
 
-#include "objectparser.h"
+#include "peparser.h"
 #include <vector>
 #include <map>
 #include <set>
@@ -33,7 +33,7 @@ enum DetectedType
 enum class insType
 {
 	other,			// Instructions that don't have their own code
-	nop,			// Instructions that do nothing, not necessarilly 0x90 (NOP)
+	nop,			// Instructions that do nothing, not necessarily 0x90 (NOP)
 	condJump,		// Conditional JMPs
 	uncondJump,		// Unconditional JMPs
 	call,			// CALL instructions
@@ -92,7 +92,7 @@ struct Block
 	//bool analyzed=false;				///< True when the register analysis is finished for this block
 	std::vector<uint32_t>& destAddrs;	///< Addresses this block jumps to at the end (not called blocks)
 
-	Block():destAddrs(*(new std::vector<uint32_t>)){}
+	Block():startAddr{},endAddr{},destAddrs(*(new std::vector<uint32_t>)){}
 };
 
 uint8_t getMod(uint8_t modrm); ///< Gets the MOD part of the ModRM
@@ -102,7 +102,7 @@ uint8_t getRM(uint8_t modrm); ///< Gets the R/M part of the ModRM
 class Disassembler
 {
 	public:
-		Disassembler(ObjectParser& Parser, bool forceIgnoreErrors=false, bool forceAssumeCodeOnly=false);
+		Disassembler(PEParser& Parser);
 		void analyze(); ///< Build the branches and Blocks vectors
 		const std::map<uint32_t ,std::vector<uint8_t>>& getCode();
 		void editInstruction(uint32_t addr,std::vector<uint8_t> ins);
@@ -140,23 +140,20 @@ class Disassembler
 		bool isAddrInBlock(const uint32_t addr);
 	private:
 		/// Virtual address corresponding to the start of the data block
-		ObjectParser& parser;
+		PEParser& parser;
 		uint8_t*& virtualImage;
 		std::vector<std::pair<uint32_t,uint32_t>> codeBounds; ///< Bounds of the executable sections
-		std::map<uint32_t ,std::vector<uint8_t>> code; ///< All the disassembled instructions and their addresses
 		uint32_t imageBase;
+		uint32_t entryPoint; ///< Entry point, offset inside the virtual image
+		std::map<uint32_t ,std::vector<uint8_t>> code; ///< All the disassembled instructions and their addresses
 		std::vector<Branch> branches;
 		std::vector<Block> blocks;
 		/// Addresses (offsets) referenced by instructions. Could be data or code used as a function pointer.
 		/// Or could just be a constant that happens to be a valid address (offset)
 		std::map<uint32_t, DetectedType> refdAddrs;
 		std::multimap<uint32_t, uint32_t> refs; ///< The key is the destination, the values are the sources
-		uint32_t entryPoint; ///< Entry point, offset inside the virtual image
 		uint32_t startOfEntrySection; ///< Start of the section containing the entry point.
 		uint32_t endOfEntrySection; ///< End of the section containing the entry point.
-		bool ignoreErrors;
-		/// If true we'll assume we can keep reading after a RET or JMP, and still get valid instructions, not data
-		bool assumeCodeOnly;
 };
 
 #endif // DECOMPILER_H

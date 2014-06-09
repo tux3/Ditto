@@ -6,16 +6,18 @@
 
 using namespace std;
 
-Disassembler::Disassembler(ObjectParser& Parser, bool forceIgnoreErrors, bool forceAssumeCodeOnly)
-: parser(Parser), virtualImage{Parser.getVirtualImage()}, ignoreErrors(forceIgnoreErrors), assumeCodeOnly{forceAssumeCodeOnly}
-{
-	// Get some info from the object parser
-	codeBounds = parser.getCodeSectionsVirtualBounds();
-	imageBase = parser.getImageBase();
-	entryPoint = parser.getEntryPoint();
+Disassembler::Disassembler(PEParser& Parser)
+: parser(Parser),
+virtualImage{Parser.getVirtualImage()},
 
-	// Find the bounds of the section containing the entry point
-	startOfEntrySection=endOfEntrySection=0;
+codeBounds{parser.getCodeSectionsVirtualBounds()},
+imageBase{parser.getImageBase()},
+entryPoint{parser.getEntryPoint()},
+
+code{}, branches{}, blocks{}, refdAddrs{}, refs{},
+startOfEntrySection{0}, endOfEntrySection{0}
+{
+    // Find the bounds of the section containing the entry point
 	for (pair<uint32_t,uint32_t>& p : codeBounds)
 	{
 		//cout << "SEC START 0x"<<hex<<p.first-virtualImage<<dec<<endl;
@@ -161,7 +163,7 @@ void Disassembler::readCode(uint32_t addr)
 				readCode(newIp);
 			}
 		}
-		if (endOfFlow && !assumeCodeOnly)
+		if (endOfFlow)
 		{
 			#if (DEBUG_OUTPUT)
 			cout << "Returning after reaching end of flow\n";

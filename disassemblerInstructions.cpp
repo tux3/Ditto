@@ -919,10 +919,7 @@ uint8_t Disassembler::readInstruction(uint32_t addr)
 	}
 	else
 	{
-		if (ignoreErrors)
-			return 0;
-		else
-			throw generateOpcodeErrorInfo("Invalid opcode, use -f to continue anyway",addr);
+		throw generateOpcodeErrorInfo("Invalid opcode",addr);
 		return 0;
 	}
 }

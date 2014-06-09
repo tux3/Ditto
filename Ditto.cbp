@@ -63,6 +63,7 @@
 		<Unit filename="objectparser.h" />
 		<Unit filename="peparser.cpp" />
 		<Unit filename="peparser.h" />
+		<Unit filename="relocation.h" />
 		<Unit filename="transInplaceSub.cpp" />
 		<Unit filename="transShuffle.cpp" />
 		<Unit filename="transform.cpp" />

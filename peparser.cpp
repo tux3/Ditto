@@ -6,7 +6,9 @@
 using namespace std;
 
 PEParser::PEParser(uint8_t*& Data, size_t& DataSize)
-: ObjectParser(Data, DataSize)
+: data{Data}, dataSize{DataSize},
+virtualImage{}, virtualImageSize{},
+coffHeader{}, peHeader{}, sectionHeaders{}, relocs{}
 {
 	//DOS header
     if (dataSize < sizeof(DOSHeader))

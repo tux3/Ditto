@@ -4,6 +4,7 @@
 #include <stddef.h>
 #include <vector>
 #include <string>
+#include "relocation.h"
 
 /// Abstract object file parser, base class for PEParser, ELFParser, ...
 class ObjectParser
@@ -38,15 +39,15 @@ class ObjectParser
 		/// Sets the entry point (in the virtual image) to the given value. No checking.
 		virtual void setEntryPoint(uint32_t value)=0;
 		virtual std::pair<uint8_t*,size_t> getData()=0;
+		/// Read the list of relocations if available (Useful for PEs)
+		virtual void readRelocations()=0;
+        virtual std::vector<Relocation> getRelocations()=0;
 
 	protected:
 		ObjectParser(uint8_t*& Data, size_t& DataSize);
 
 	protected:
-		uint8_t*& data; // May change at any time
-		size_t& dataSize; // May change at any time
-		uint8_t* virtualImage; // May change at any time
-		size_t virtualImageSize; // May change at any time
+
 };
 
 #endif // OBJECTPARSER_H

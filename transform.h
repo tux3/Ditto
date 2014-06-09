@@ -2,11 +2,12 @@
 #define TRANSFORM_H
 
 #include "disassembler.h"
+#include "peparser.h"
 
 class Transform
 {
 	public:
-		Transform(Disassembler& disassembler, ObjectParser& Parser, uint8_t Rand);
+		Transform(Disassembler& disassembler, PEParser& Parser, uint8_t Rand);
 		/// Substitutes instructions with equivalent instructions of the same size.
 		/// @return The number of substitutions done
 		unsigned substitute();
@@ -21,7 +22,7 @@ class Transform
 		bool getRandBool();
 	private:
 		Disassembler& disasm;
-		ObjectParser& parser;
+		PEParser& parser;
 		uint8_t rand;
 };
 

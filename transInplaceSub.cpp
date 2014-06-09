@@ -159,7 +159,7 @@ unsigned Transform::substitute()
 			}
 			/** TODO
 			If an instruction uses a displacement of 0, we can replace it by no-ops
-			Replace ADD +X by SUB -X, and the countrary
+			Replace ADD +X by SUB -X, and the contrary
 			Replace XOR REG,REG and equivalents by a random equivalent
 			Replace TEST REG,REG by OR REG,REG
 			Replace MOV REG1, REG2 by PUSH REG2; POP REG1.

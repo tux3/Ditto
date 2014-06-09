@@ -122,19 +122,7 @@ Block Disassembler::readBlocks(uint32_t addr)
 	insType iType = getInstructionType(firstIns);
 
 	if (insSize==0)
-	{
-		if (ignoreErrors)
-		{
-			Block errorBlock;
-			errorBlock.startAddr=errorBlock.endAddr=(uint32_t)-1;
-			//errorBlock.analyzed=true;
-			if (isAddrInternal(addr+1) && !isAddrInBlock(addr+1))
-				readBlocks(addr+1);
-			return errorBlock;
-		}
-		else
-			throw "Instruction with null size while reading blocks (start), use -f to continue anyway";
-	}
+		throw "Instruction with null size while reading blocks (start)";
 
 	// Start with a block of 1 instruction
 	Block block;
@@ -187,17 +175,7 @@ Block Disassembler::readBlocks(uint32_t addr)
 		iType = getInstructionType(ins);
 
 		if (insSize==0)
-		{
-			if (ignoreErrors)
-			{
-				blocks.push_back(block);
-				if (isAddrInternal(addr+1) && !isAddrInBlock(addr+1))
-					readBlocks(addr+1);
-				return block;
-			}
-			else
-				throw "Instruction with null size while reading blocks, use -f to continue anyway";
-		}
+			throw "Instruction with null size while reading blocks";
 
 		// If instruction is a jump or ret, add it and stop (and process jumps recursively)
 		if (iType==insType::condJump)

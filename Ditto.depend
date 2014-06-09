@@ -1,5 +1,5 @@
 # depslib dependency file v1.0
-1394649765 source:c:\users\tux\documents\dev\projects\ditto\main.cpp
+1402308068 source:c:\users\tux\documents\dev\projects\ditto\main.cpp
 	<iostream>
 	<fstream>
 	<string>
@@ -13,24 +13,29 @@
 	"disassembler.h"
 	"transform.h"
 
-1394475884 source:c:\users\tux\documents\dev\projects\ditto\objectparser.cpp
+1402305771 source:c:\users\tux\documents\dev\projects\ditto\objectparser.cpp
 	"objectparser.h"
 	<iostream>
 
-1394575980 c:\users\tux\documents\dev\projects\ditto\objectparser.h
+1402305574 c:\users\tux\documents\dev\projects\ditto\objectparser.h
 	<stddef.h>
 	<vector>
 	<string>
+	"relocation.h"
 
-1394576838 source:c:\users\tux\documents\dev\projects\ditto\peparser.cpp
+1402306993 source:c:\users\tux\documents\dev\projects\ditto\peparser.cpp
 	"peparser.h"
 	<iostream>
 	<algorithm>
 	<mem.h>
 
-1394576013 c:\users\tux\documents\dev\projects\ditto\peparser.h
-	"objectparser.h"
+1402307397 c:\users\tux\documents\dev\projects\ditto\peparser.h
+	<stddef.h>
 	<stdint.h>
+	<vector>
+	<string>
+	"peformat.h"
+	"relocation.h"
 
 1393952499 source:c:\users\tux\documents\dev\projects\ditto\decompiler.cpp
 	"decompiler.h"
@@ -41,45 +46,51 @@
 	<stdint.h>
 	<stddef.h>
 
-1395001096 source:c:\users\tux\documents\dev\projects\ditto\disassembler.cpp
+1402307607 source:c:\users\tux\documents\dev\projects\ditto\disassembler.cpp
 	"disassembler.h"
 	<sstream>
 	<iostream>
 
-1394473892 c:\users\tux\documents\dev\projects\ditto\disassembler.h
-	"objectparser.h"
+1402307591 c:\users\tux\documents\dev\projects\ditto\disassembler.h
+	"peparser.h"
 	<vector>
 	<map>
 	<set>
 	<stdint.h>
 	<stddef.h>
 
-1394723521 source:c:\users\tux\documents\dev\projects\ditto\disassemblerinstructions.cpp
+1402307687 source:c:\users\tux\documents\dev\projects\ditto\disassemblerinstructions.cpp
 	"disassembler.h"
 
-1394723650 source:c:\users\tux\documents\dev\projects\ditto\transform.cpp
+1402305797 source:c:\users\tux\documents\dev\projects\ditto\transform.cpp
 	"transform.h"
 	"peparser.h"
 	<iostream>
 	<cstdlib>
 	<ctime>
 
-1394583527 c:\users\tux\documents\dev\projects\ditto\transform.h
+1402305819 c:\users\tux\documents\dev\projects\ditto\transform.h
 	"disassembler.h"
+	"peparser.h"
 
-1395001067 source:c:\users\tux\documents\dev\projects\ditto\transinplacesub.cpp
+1398618939 source:c:\users\tux\documents\dev\projects\ditto\transinplacesub.cpp
 	"transform.h"
 	<iostream>
 	<cstdlib>
 	<ctime>
 
-1394473864 source:c:\users\tux\documents\dev\projects\ditto\disassembleranalyze.cpp
+1402307670 source:c:\users\tux\documents\dev\projects\ditto\disassembleranalyze.cpp
 	"disassembler.h"
 	<sstream>
 	<iostream>
 
-1394723728 source:c:\users\tux\documents\dev\projects\ditto\transshuffle.cpp
+1394727328 source:c:\users\tux\documents\dev\projects\ditto\transshuffle.cpp
 	"transform.h"
 	<list>
 	<iostream>
+
+1398622493 c:\users\tux\documents\dev\projects\ditto\relocation.h
+
+1402307136 c:\users\tux\documents\dev\projects\ditto\peformat.h
+	<stdint.h>
 

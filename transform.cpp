@@ -6,7 +6,7 @@
 
 using namespace std;
 
-Transform::Transform(Disassembler& disassembler, ObjectParser& Parser, uint8_t Rand)
+Transform::Transform(Disassembler& disassembler, PEParser& Parser, uint8_t Rand)
 : disasm(disassembler), parser(Parser), rand(Rand)
 {
 	srand(time(NULL));
