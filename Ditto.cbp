@@ -60,7 +60,11 @@
 		<Unit filename="disassembler.h" />
 		<Unit filename="disassemblerAnalyze.cpp" />
 		<Unit filename="disassemblerInstructions.cpp" />
+		<Unit filename="error.cpp" />
+		<Unit filename="error.h" />
 		<Unit filename="main.cpp" />
+		<Unit filename="options.cpp" />
+		<Unit filename="options.h" />
 		<Unit filename="peformat.h" />
 		<Unit filename="peparser.cpp" />
 		<Unit filename="peparser.h" />

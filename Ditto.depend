@@ -1,17 +1,16 @@
 # depslib dependency file v1.0
-1402308068 source:c:\users\tux\documents\dev\projects\ditto\main.cpp
-	<iostream>
+1403008477 source:c:\users\tux\documents\dev\projects\ditto\main.cpp
 	<fstream>
-	<string>
-	<cstdlib>
 	<memory>
 	<sstream>
 	<algorithm>
-	<unistd.h>
+	<iostream>
 	"objectparser.h"
 	"peparser.h"
 	"disassembler.h"
 	"transform.h"
+	"options.h"
+	"error.h"
 
 1402305771 source:c:\users\tux\documents\dev\projects\ditto\objectparser.cpp
 	"objectparser.h"
@@ -93,4 +92,23 @@
 
 1402307136 c:\users\tux\documents\dev\projects\ditto\peformat.h
 	<stdint.h>
+
+1403008052 source:c:\users\tux\documents\dev\projects\ditto\error.cpp
+	"error.h"
+	<iostream>
+	<cstdlib>
+
+1403007988 c:\users\tux\documents\dev\projects\ditto\error.h
+	<string>
+
+1403008286 c:\users\tux\documents\dev\projects\ditto\options.h
+	<string>
+
+1403008374 source:c:\users\tux\documents\dev\projects\ditto\options.cpp
+	"options.h"
+	"error.h"
+	<unistd.h>
+	<iostream>
+	<cstdlib>
+	<fstream>
 
